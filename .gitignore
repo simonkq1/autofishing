@@ -1,0 +1,12 @@
+.gradle/
+build/
+run/
+.idea/
+*.iml
+.jdk/
+.gradle-dist/
+build-output.log
+build-error.log
+build-support/mixin-stubs-classes/
+backups/
+*.tmp

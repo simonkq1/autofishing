@@ -1,0 +1,10 @@
+Frosty AutoFish is a standalone rewrite of the AutoFish module from Frosty.
+
+Original project:
+  Frosty by WhatsYouss
+  https://github.com/WhatsYouss/Frosty
+
+The ground navigation implementation is derived from Frosty's GPL-3.0
+NavMesh implementation and has been moved into an isolated package.
+
+This project is distributed under the GNU General Public License v3.0.
