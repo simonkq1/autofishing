@@ -43,9 +43,11 @@ public final class ConfigScreen extends Screen {
 
         y += ROW_GAP;
         addRenderableWidget(CycleButton.onOffBuilder(working.backgroundRun)
-                .create(left, y, BUTTON_WIDTH * 2 + COLUMN_GAP, BUTTON_HEIGHT,
-                        Component.literal("Background Run"),
+                .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("Background Run"),
                         (button, value) -> working.backgroundRun = value));
+        addRenderableWidget(CycleButton.onOffBuilder(working.lockControls)
+                .create(right, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("Lock Controls"),
+                        (button, value) -> working.lockControls = value));
 
         y += ROW_GAP;
         addRenderableWidget(new IntSlider(
@@ -119,6 +121,7 @@ public final class ConfigScreen extends Screen {
     @Override
     public void onClose() {
         configManager.config().copyFrom(working);
+        controller.syncInputLock();
         configManager.save();
         minecraft.setScreen(parent);
     }

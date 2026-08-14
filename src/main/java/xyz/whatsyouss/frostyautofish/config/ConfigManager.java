@@ -52,7 +52,7 @@ public final class ConfigManager {
         try {
             Files.createDirectories(path.getParent());
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
-            Files.writeString(temporary, GSON.toJson(config), StandardCharsets.UTF_8);
+            Files.writeString(temporary, serialize(config), StandardCharsets.UTF_8);
             try {
                 Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException unsupportedAtomicMove) {
@@ -74,5 +74,9 @@ public final class ConfigManager {
         } catch (RuntimeException exception) {
             return new AutoFishConfig();
         }
+    }
+
+    static String serialize(AutoFishConfig config) {
+        return GSON.toJson(config);
     }
 }

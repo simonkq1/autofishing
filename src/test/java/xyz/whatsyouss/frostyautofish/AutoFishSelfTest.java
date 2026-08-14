@@ -9,6 +9,7 @@ public final class AutoFishSelfTest {
     public static void main(String[] args) {
         AutoFishConfigSelfTest.run();
         AutoFishStateSelfTest.run();
+        InputLockSelfTest.run();
         BackgroundRunState.setActive(false);
         if (BackgroundRunState.isActive()) {
             throw new AssertionError("background run should start inactive");

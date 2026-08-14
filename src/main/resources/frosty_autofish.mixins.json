@@ -4,7 +4,13 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "FishingHookAccessor",
-    "MinecraftPauseMixin"
+    "KeyMappingAccessor",
+    "KeyMappingMixin",
+    "KeyboardHandlerMixin",
+    "MinecraftPauseMixin",
+    "MouseHandlerAccessor",
+    "MouseHandlerMixin",
+    "ToggleKeyMappingAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

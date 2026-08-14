@@ -27,7 +27,6 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
         Minecraft minecraft = Minecraft.getInstance();
         configManager = new ConfigManager(LOGGER);
         configManager.load();
-        controller = new AutoFishController(minecraft, configManager.config());
 
         KeyMapping.Category category = KeyMapping.Category.register(
                 Identifier.fromNamespaceAndPath(MOD_ID, "main")
@@ -44,6 +43,12 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_F9,
                 category
         ));
+        InputLockCoordinator inputLock = InputLockCoordinator.initialize(
+                minecraft,
+                toggleKey,
+                configKey
+        );
+        controller = new AutoFishController(minecraft, configManager.config(), inputLock);
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndClientTick);
         ClientEntityEvents.ENTITY_LOAD.register(controller::onEntityLoad);

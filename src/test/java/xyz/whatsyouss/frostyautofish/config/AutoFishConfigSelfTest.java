@@ -7,8 +7,11 @@ public final class AutoFishConfigSelfTest {
     public static void run() {
         defaultsAreStable();
         legacyAndUnknownFieldsAreIgnored();
+        lockControlsTrueIsParsed();
         valuesAreClampedAndNullEnumsFallBack();
         malformedJsonFallsBackToDefaults();
+        copyAndCopyFromKeepLockControls();
+        lockControlsSurvivesSaveRoundTrip();
         namedPlayerTargetsAreNormalizedAndMatched();
     }
 
@@ -24,6 +27,7 @@ public final class AutoFishConfigSelfTest {
         check(config.maxWaitSeconds == 30, "missing field keeps default");
         check(config.dryTimeoutSeconds == 15, "new dry timeout keeps default");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "new enum keeps default");
+        check(!config.lockControls, "legacy config keeps lock controls disabled");
     }
 
     private static void defaultsAreStable() {
@@ -31,6 +35,7 @@ public final class AutoFishConfigSelfTest {
         check(config.autoThrow, "autoThrow default");
         check(config.antiAfk, "antiAfk default");
         check(config.backgroundRun, "backgroundRun default");
+        check(!config.lockControls, "lockControls default");
         check(config.maxWaitSeconds == 30, "maxWaitSeconds default");
         check(config.dryTimeoutSeconds == 15, "dryTimeoutSeconds default");
         check(config.autoKill, "autoKill default");
@@ -41,6 +46,11 @@ public final class AutoFishConfigSelfTest {
         check(config.weaponSlot == 1, "weaponSlot default");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "biteDetection default");
         check(config.namedPlayerTargets.isEmpty(), "namedPlayerTargets default");
+    }
+
+    private static void lockControlsTrueIsParsed() {
+        AutoFishConfig config = ConfigManager.parse("{\"lockControls\":true}");
+        check(config.lockControls, "lockControls true parsed");
     }
 
     private static void valuesAreClampedAndNullEnumsFallBack() {
@@ -71,6 +81,28 @@ public final class AutoFishConfigSelfTest {
         check(config.abilityDelayMillis == 150, "malformed JSON abilityDelayMillis");
         check(config.triggerAmount == 3, "malformed JSON triggerAmount");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "malformed JSON biteDetection");
+        check(!config.lockControls, "malformed JSON lockControls default");
+    }
+
+    private static void copyAndCopyFromKeepLockControls() {
+        AutoFishConfig enabled = new AutoFishConfig();
+        enabled.lockControls = true;
+        AutoFishConfig copy = enabled.copy();
+        check(copy.lockControls, "copy keeps lockControls true");
+
+        AutoFishConfig target = new AutoFishConfig();
+        target.copyFrom(enabled);
+        check(target.lockControls, "copyFrom keeps lockControls true");
+
+        target.copyFrom(new AutoFishConfig());
+        check(!target.lockControls, "copyFrom keeps lockControls false");
+    }
+
+    private static void lockControlsSurvivesSaveRoundTrip() {
+        AutoFishConfig source = new AutoFishConfig();
+        source.lockControls = true;
+        AutoFishConfig reloaded = ConfigManager.parse(ConfigManager.serialize(source));
+        check(reloaded.lockControls, "serialized lockControls reloads true");
     }
 
     private static void namedPlayerTargetsAreNormalizedAndMatched() {

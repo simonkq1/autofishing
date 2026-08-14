@@ -48,6 +48,7 @@ public final class AutoFishController {
 
     private final Minecraft minecraft;
     private final AutoFishConfig config;
+    private final InputLockCoordinator inputLock;
     private final RotationHelper rotation;
     private final BiteSignalGate biteSignalGate = new BiteSignalGate();
     private final GroundPathService pathService = new GroundPathService();
@@ -97,9 +98,14 @@ public final class AutoFishController {
     private float antiAfkOriginalYaw;
     private boolean antiAfkOffset;
 
-    public AutoFishController(Minecraft minecraft, AutoFishConfig config) {
+    public AutoFishController(
+            Minecraft minecraft,
+            AutoFishConfig config,
+            InputLockCoordinator inputLock
+    ) {
         this.minecraft = minecraft;
         this.config = config;
+        this.inputLock = inputLock;
         this.rotation = new RotationHelper(minecraft);
     }
 
@@ -122,8 +128,10 @@ public final class AutoFishController {
     public void tick() {
         if (!isEnabled()) {
             BackgroundRunState.setActive(false);
+            inputLock.setActive(false);
             return;
         }
+        syncInputLock();
         BackgroundRunState.setActive(config.backgroundRun);
         if (minecraft.player == null || minecraft.level == null || minecraft.gameMode == null) {
             disable(false, null);
@@ -183,6 +191,10 @@ public final class AutoFishController {
         releaseMovement();
     }
 
+    public void syncInputLock() {
+        inputLock.setActive(isEnabled() && config.lockControls);
+    }
+
     public void onEntityLoad(Entity entity, ClientLevel level) {
         if (!isEnabled() || level != activeLevel || minecraft.player == null) {
             return;
@@ -236,6 +248,7 @@ public final class AutoFishController {
         antiAfkOffset = false;
         scheduleAntiAfk();
         setState(AutoFishState.READY_TO_CAST);
+        syncInputLock();
         BackgroundRunState.setActive(config.backgroundRun);
         message("Enabled | Auto Kill: "
                 + (config.autoKill ? "ON (" + config.triggerAmount + ")" : "OFF"));
@@ -253,6 +266,7 @@ public final class AutoFishController {
             useRod();
         }
         state = AutoFishState.DISABLED;
+        inputLock.setActive(false);
         BackgroundRunState.setActive(false);
         clearTargets();
         currentTarget = null;

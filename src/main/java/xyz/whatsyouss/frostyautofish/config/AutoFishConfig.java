@@ -10,6 +10,7 @@ public final class AutoFishConfig {
     public boolean autoThrow = true;
     public boolean antiAfk = true;
     public boolean backgroundRun = true;
+    public boolean lockControls = false;
     public int maxWaitSeconds = 30;
     public int dryTimeoutSeconds = 15;
     public boolean autoKill = true;
@@ -37,6 +38,7 @@ public final class AutoFishConfig {
         copy.autoThrow = autoThrow;
         copy.antiAfk = antiAfk;
         copy.backgroundRun = backgroundRun;
+        copy.lockControls = lockControls;
         copy.maxWaitSeconds = maxWaitSeconds;
         copy.dryTimeoutSeconds = dryTimeoutSeconds;
         copy.autoKill = autoKill;
@@ -54,6 +56,7 @@ public final class AutoFishConfig {
         autoThrow = other.autoThrow;
         antiAfk = other.antiAfk;
         backgroundRun = other.backgroundRun;
+        lockControls = other.lockControls;
         maxWaitSeconds = other.maxWaitSeconds;
         dryTimeoutSeconds = other.dryTimeoutSeconds;
         autoKill = other.autoKill;

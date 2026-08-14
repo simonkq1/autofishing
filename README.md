@@ -31,6 +31,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 | Auto Throw | 开 | 自动抛竿和重新抛竿 |
 | Anti AFK | 开 | 每 10–20 秒轻微转动视角并恢复 |
 | Background Run | 开 | AutoFish 启用时切换到其他窗口不触发失焦暂停 |
+| Lock Controls | 关 | AutoFish 启用且没有打开 Screen 或 overlay 时锁定物理游戏操作 |
 | Dry Timeout | 15 秒 | 首次无咬钩超时重抛，连续第二次超时停用并发送 `/is` |
 | Auto Kill | 开 | 累积并自动清理收竿后生成的海怪 |
 | Trigger Amount | 3 | 达到该目标数量后开始清理 |
@@ -72,6 +73,14 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   在主线程计时，并为每个新目标固定生成一次 ±10% 浮动，随后按实时位置精确瞄准并立即使用技能。
 - Background Run 只在 AutoFish 正在启用时取消 Minecraft 的失焦暂停；关闭 AutoFish 或关闭该设置后，
   游戏恢复原本的失焦行为。后台帧率仍由 Minecraft 自己的非活动窗口帧率设置决定。
+- Lock Controls 启用后，会在 AutoFish 运行且没有打开 Screen 或 overlay 时拦截物理鼠标转向、攻击和
+  使用，以及前后左右移动、跳跃、潜行、疾跑、快捷栏 1–9、选取方块槽位和世界内滚轮切换。
+  `F8`、`F9`（包括改键后）、聊天、命令、`Escape`、背包和其他界面快捷键仍可使用。
+- 任意 Screen 或 overlay 打开时会暂时解除 Lock Controls，所有输入正常工作；Screen 打开期间，
+  AutoFish 会按现有逻辑暂停自动流程并释放移动键。AutoFish 自己的移动、瞄准、攻击、使用物品和
+  槽位切换不受此物理输入锁影响。
+- 解除锁定时会恢复仍按住的物理键盘状态；若一直按住鼠标攻击键或使用键，则需先松开再重新按下，
+  避免合成意外点击。此功能不会阻止其他 Mod 直接调用 `gameMode`、修改 yaw 或设置物品栏槽位。
 - 自动化功能可能违反某些服务器规则。使用前请确认目标服务器的规定，风险由使用者承担。
 - 不要同时启用 Frosty 原版 AutoFish 和本 Mod，否则两个控制器会互相竞争。
 
