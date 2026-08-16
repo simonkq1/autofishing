@@ -10,7 +10,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Fabric API 0.152.1+26.1.2 或更高的 26.1.2 兼容版本
 - Java 25
 
-将 `FrostyAutoFish-1.5.0+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
+将 `FrostyAutoFish-1.5.1+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
 `mods` 目录即可。此 Mod 只能安装在客户端。
 
 ## 操作
@@ -75,6 +75,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   游戏恢复原本的失焦行为。后台帧率仍由 Minecraft 自己的非活动窗口帧率设置决定。
 - Lock Controls 启用后，会在 AutoFish 运行且没有打开 Screen 或 overlay 时拦截物理鼠标转向、攻击和
   使用，以及前后左右移动、跳跃、潜行、疾跑、快捷栏 1–9、选取方块槽位和世界内滚轮切换。
+  世界中锁定视角时会显示鼠标游标；解除锁定后，会在回到游戏世界时恢复隐藏游标与视角控制。
   `F8`、`F9`（包括改键后）、聊天、命令、`Escape`、背包和其他界面快捷键仍可使用。
 - 任意 Screen 或 overlay 打开时会暂时解除 Lock Controls，所有输入正常工作；Screen 打开期间，
   AutoFish 会按现有逻辑暂停自动流程并释放移动键。AutoFish 自己的移动、瞄准、攻击、使用物品和
@@ -92,7 +93,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 .\gradlew.bat build
 ```
 
-产物位于 `build\libs\FrostyAutoFish-1.5.0+26.1.2.jar`。
+产物位于 `build\libs\FrostyAutoFish-1.5.1+26.1.2.jar`。
 
 本目录是 26.1.2 专用兼容变体；请勿将其安装到 26.2 客户端。原始分析文档描述的
 Frosty 源码基线仍是 26.2，独立 Mod 的业务逻辑保持一致，仅适配游戏和 Fabric API 版本。

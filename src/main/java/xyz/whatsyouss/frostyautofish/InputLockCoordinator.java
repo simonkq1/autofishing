@@ -25,6 +25,7 @@ public final class InputLockCoordinator {
     private List<KeyMapping> blockedMappings = List.of();
     private List<KeyMapping> allowedMappings = List.of();
     private boolean mappingsReady;
+    private boolean cursorReleasedByLock;
     private EventSnapshot keyboardSnapshot;
     private EventSnapshot mouseSnapshot;
 
@@ -99,6 +100,7 @@ public final class InputLockCoordinator {
                 restoreHeldKeyboardInput();
             }
         }
+        syncCursorVisibility();
     }
 
     private boolean beginKeyboard(KeyEvent event, int action) {
@@ -147,6 +149,25 @@ public final class InputLockCoordinator {
     private boolean isBlocking() {
         return ensureMappingsReady()
                 && state.isBlocking(minecraft.screen != null, minecraft.getOverlay() != null);
+    }
+
+    private void syncCursorVisibility() {
+        boolean shouldReleaseCursor = ensureMappingsReady()
+                && state.isBlocking(minecraft.screen != null, minecraft.getOverlay() != null);
+        if (shouldReleaseCursor) {
+            if (minecraft.mouseHandler.isMouseGrabbed()) {
+                minecraft.mouseHandler.releaseMouse();
+                cursorReleasedByLock = true;
+            }
+            return;
+        }
+        if (!cursorReleasedByLock || minecraft.screen != null || minecraft.getOverlay() != null) {
+            return;
+        }
+        if (!minecraft.mouseHandler.isMouseGrabbed()) {
+            minecraft.mouseHandler.grabMouse();
+        }
+        cursorReleasedByLock = false;
     }
 
     private void clearStaleInput() {
