@@ -1,5 +1,8 @@
 package xyz.whatsyouss.frostyautofish.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class AutoFishConfigSelfTest {
     private AutoFishConfigSelfTest() {
     }
@@ -13,6 +16,7 @@ public final class AutoFishConfigSelfTest {
         copyAndCopyFromKeepLockControls();
         lockControlsSurvivesSaveRoundTrip();
         namedPlayerTargetsAreNormalizedAndMatched();
+        targetListEditorEditsNames();
     }
 
     private static void legacyAndUnknownFieldsAreIgnored() {
@@ -126,6 +130,44 @@ public final class AutoFishConfigSelfTest {
         ), "formatted overhead name matched");
         check(!TargetNameMatcher.matches("Trash Gobbler", "Water Hydra"),
                 "unrelated overhead name rejected");
+    }
+
+    private static void targetListEditorEditsNames() {
+        List<String> targets = new ArrayList<>();
+
+        TargetListEditor.Result added = TargetListEditor.add(targets, "  §cTrash   Gobbler  ");
+        check(added.success(), "target editor add succeeds");
+        check(added.normalizedName().equals("Trash Gobbler"), "target editor add normalizes");
+        check(targets.size() == 1 && targets.getFirst().equals("Trash Gobbler"), "target editor stores normalized");
+
+        TargetListEditor.Result duplicate = TargetListEditor.add(targets, "trash gobbler");
+        check(!duplicate.success(), "target editor rejects case duplicate");
+        check(duplicate.status() == TargetListEditor.Status.DUPLICATE, "target editor duplicate status");
+        check(targets.size() == 1, "target editor duplicate does not write");
+
+        TargetListEditor.Result empty = TargetListEditor.add(targets, "   ");
+        check(!empty.success(), "target editor rejects empty");
+        check(empty.status() == TargetListEditor.Status.EMPTY_NAME, "target editor empty status");
+
+        String tooLongName = "x".repeat(TargetNameMatcher.MAX_RULE_LENGTH + 1);
+        TargetListEditor.Result tooLong = TargetListEditor.add(targets, tooLongName);
+        check(!tooLong.success(), "target editor rejects long name");
+        check(tooLong.status() == TargetListEditor.Status.NAME_TOO_LONG, "target editor long status");
+
+        TargetListEditor.Result removed = TargetListEditor.remove(targets, "TRASH GOBBLER");
+        check(removed.success(), "target editor remove ignores case");
+        check(targets.isEmpty(), "target editor remove writes");
+
+        TargetListEditor.Result missing = TargetListEditor.remove(targets, "Trash Gobbler");
+        check(!missing.success(), "target editor missing remove fails");
+        check(missing.status() == TargetListEditor.Status.NOT_FOUND, "target editor missing status");
+
+        TargetListEditor.add(targets, "Lava Blaze");
+        TargetListEditor.add(targets, "Water Hydra");
+        TargetListEditor.Result cleared = TargetListEditor.clear(targets);
+        check(cleared.success(), "target editor clear succeeds");
+        check(cleared.count() == 2, "target editor clear count");
+        check(targets.isEmpty(), "target editor clear writes");
     }
 
     private static void check(boolean condition, String name) {

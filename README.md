@@ -10,7 +10,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Fabric API 0.152.1+26.1.2 或更高的 26.1.2 兼容版本
 - Java 25
 
-将 `FrostyAutoFish-1.5.1+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
+将 `FrostyAutoFish-1.5.2+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
 `mods` 目录即可。此 Mod 只能安装在客户端。
 
 ## 操作
@@ -61,6 +61,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   - `/frostyautofish target remove <名称>`
   - `/frostyautofish target list`
   - `/frostyautofish target clear`
+  也可以在 `F9` 配置页面中通过 `Manage Targets` 管理此名单。
   名称匹配忽略大小写、颜色代码和多余空格，并允许等级、血量等前后缀。只有收竿后新出现且
   位于本地鱼钩/玩家捕获范围内的匹配玩家实体会被攻击。
 - 经名称白名单验证的玩家模型实体会在本轮目标生命周期内保留批准状态；技能未能在重试和
@@ -93,7 +94,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 .\gradlew.bat build
 ```
 
-产物位于 `build\libs\FrostyAutoFish-1.5.1+26.1.2.jar`。
+产物位于 `build\libs\FrostyAutoFish-1.5.2+26.1.2.jar`。
 
 本目录是 26.1.2 专用兼容变体；请勿将其安装到 26.2 客户端。原始分析文档描述的
 Frosty 源码基线仍是 26.2，独立 Mod 的业务逻辑保持一致，仅适配游戏和 Fabric API 版本。

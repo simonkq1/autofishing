@@ -11,6 +11,7 @@ import xyz.whatsyouss.frostyautofish.config.ConfigManager;
 
 public final class ConfigScreen extends Screen {
     private static final int BUTTON_WIDTH = 160;
+    private static final int FOOTER_BUTTON_WIDTH = 104;
     private static final int BUTTON_HEIGHT = 20;
     private static final int COLUMN_GAP = 8;
     private static final int ROW_GAP = 24;
@@ -95,12 +96,19 @@ public final class ConfigScreen extends Screen {
                         (button, value) -> working.biteDetection = value));
 
         y += ROW_GAP + 8;
+        int footerLeft = width / 2 - FOOTER_BUTTON_WIDTH * 3 / 2 - COLUMN_GAP;
+        int footerMiddle = width / 2 - FOOTER_BUTTON_WIDTH / 2;
+        int footerRight = width / 2 + FOOTER_BUTTON_WIDTH / 2 + COLUMN_GAP;
         addRenderableWidget(new Button.Builder(Component.literal("Reset Defaults"), button -> {
             working = new AutoFishConfig();
             rebuildWidgets();
-        }).bounds(left, y, BUTTON_WIDTH, BUTTON_HEIGHT).build());
+        }).bounds(footerLeft, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT).build());
+        addRenderableWidget(new Button.Builder(Component.literal("Manage Targets"), button ->
+                minecraft.setScreen(new TargetManagementScreen(this, configManager)))
+                .bounds(footerMiddle, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
+                .build());
         addRenderableWidget(new Button.Builder(Component.literal("Done"), button -> onClose())
-                .bounds(right, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+                .bounds(footerRight, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
     }
 
@@ -129,6 +137,10 @@ public final class ConfigScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    void syncNamedPlayerTargetsFromLiveConfig() {
+        working.namedPlayerTargets = configManager.config().copy().namedPlayerTargets;
     }
 
     private static final class IntSlider extends AbstractSliderButton {

@@ -3,11 +3,9 @@ package xyz.whatsyouss.frostyautofish;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.minecraft.network.chat.Component;
-import xyz.whatsyouss.frostyautofish.config.AutoFishConfig;
 import xyz.whatsyouss.frostyautofish.config.ConfigManager;
+import xyz.whatsyouss.frostyautofish.config.TargetListEditor;
 import xyz.whatsyouss.frostyautofish.config.TargetNameMatcher;
-
-import java.util.Locale;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
@@ -47,23 +45,19 @@ final class NamedTargetCommands {
             ConfigManager configManager,
             String input
     ) {
-        String name = TargetNameMatcher.normalize(input);
-        if (name.isEmpty() || name.length() > TargetNameMatcher.MAX_RULE_LENGTH) {
+        TargetListEditor.Result result = TargetListEditor.add(configManager.config().namedPlayerTargets, input);
+        if (result.status() == TargetListEditor.Status.EMPTY_NAME
+                || result.status() == TargetListEditor.Status.NAME_TOO_LONG) {
             source.sendError(message("Name must contain 1-" + TargetNameMatcher.MAX_RULE_LENGTH + " characters"));
             return 0;
         }
-
-        AutoFishConfig config = configManager.config();
-        boolean duplicate = config.namedPlayerTargets.stream()
-                .anyMatch(existing -> existing.equalsIgnoreCase(name));
-        if (duplicate) {
-            source.sendError(message("Target already exists: " + name));
+        if (!result.success()) {
+            source.sendError(message("Target already exists: " + result.normalizedName()));
             return 0;
         }
 
-        config.namedPlayerTargets.add(name);
         configManager.save();
-        source.sendFeedback(message("Added player-model target: " + name));
+        source.sendFeedback(message("Added player-model target: " + result.normalizedName()));
         source.sendFeedback(message("Matching ignores case/color codes and accepts name prefixes/suffixes"));
         return 1;
     }
@@ -73,16 +67,13 @@ final class NamedTargetCommands {
             ConfigManager configManager,
             String input
     ) {
-        String name = TargetNameMatcher.normalize(input);
-        boolean removed = configManager.config().namedPlayerTargets.removeIf(
-                existing -> existing.toLowerCase(Locale.ROOT).equals(name.toLowerCase(Locale.ROOT))
-        );
-        if (!removed) {
-            source.sendError(message("Target not found: " + name));
+        TargetListEditor.Result result = TargetListEditor.remove(configManager.config().namedPlayerTargets, input);
+        if (!result.success()) {
+            source.sendError(message("Target not found: " + result.normalizedName()));
             return 0;
         }
         configManager.save();
-        source.sendFeedback(message("Removed player-model target: " + name));
+        source.sendFeedback(message("Removed player-model target: " + result.normalizedName()));
         return 1;
     }
 
@@ -104,11 +95,10 @@ final class NamedTargetCommands {
             net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource source,
             ConfigManager configManager
     ) {
-        int count = configManager.config().namedPlayerTargets.size();
-        configManager.config().namedPlayerTargets.clear();
+        TargetListEditor.Result result = TargetListEditor.clear(configManager.config().namedPlayerTargets);
         configManager.save();
-        source.sendFeedback(message("Cleared " + count + " player-model target(s)"));
-        return count;
+        source.sendFeedback(message("Cleared " + result.count() + " player-model target(s)"));
+        return result.count();
     }
 
     private static Component message(String text) {
