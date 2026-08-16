@@ -43,18 +43,4 @@ public interface MouseHandlerAccessor {
 
     @Accessor("mousePressedTime")
     void frostyAutoFish$setMousePressedTime(double value);
-
-    default void frostyAutoFish$resetLockedInput() {
-        frostyAutoFish$getSmoothTurnX().reset();
-        frostyAutoFish$getSmoothTurnY().reset();
-        frostyAutoFish$setAccumulatedDX(0.0);
-        frostyAutoFish$setAccumulatedDY(0.0);
-        frostyAutoFish$setLeftPressed(false);
-        frostyAutoFish$setMiddlePressed(false);
-        frostyAutoFish$setRightPressed(false);
-        frostyAutoFish$setActiveButton(null);
-        frostyAutoFish$setFakeRightMouse(0);
-        frostyAutoFish$setClickDepth(0);
-        frostyAutoFish$setMousePressedTime(0.0);
-    }
 }

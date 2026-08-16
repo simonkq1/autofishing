@@ -19,9 +19,12 @@ public final class InputLockCoordinator {
     private static InputLockCoordinator instance;
 
     private final Minecraft minecraft;
+    private final KeyMapping toggleKey;
+    private final KeyMapping configKey;
     private final InputLockState state = new InputLockState();
-    private final List<KeyMapping> blockedMappings;
-    private final List<KeyMapping> allowedMappings;
+    private List<KeyMapping> blockedMappings = List.of();
+    private List<KeyMapping> allowedMappings = List.of();
+    private boolean mappingsReady;
     private EventSnapshot keyboardSnapshot;
     private EventSnapshot mouseSnapshot;
 
@@ -31,17 +34,8 @@ public final class InputLockCoordinator {
             KeyMapping configKey
     ) {
         this.minecraft = minecraft;
-        this.blockedMappings = createBlockedMappings(minecraft);
-        this.allowedMappings = List.of(
-                toggleKey,
-                configKey,
-                minecraft.options.keyChat,
-                minecraft.options.keyCommand,
-                minecraft.options.keyInventory,
-                minecraft.options.keyAdvancements,
-                minecraft.options.keySocialInteractions,
-                minecraft.options.keyQuickActions
-        );
+        this.toggleKey = toggleKey;
+        this.configKey = configKey;
     }
 
     public static InputLockCoordinator initialize(
@@ -82,31 +76,34 @@ public final class InputLockCoordinator {
     }
 
     public static boolean gateSetAll() {
-        return instance != null && instance.state.isActive();
+        return instance != null && instance.state.isActive() && instance.ensureMappingsReady();
     }
 
     public static void beforeToggleRestore() {
-        if (instance == null || !instance.state.isActive()) {
+        if (instance == null || !instance.state.isActive() || !instance.ensureMappingsReady()) {
             return;
         }
         instance.clearBlockedPendingToggleRestores();
     }
 
     public void setActive(boolean active) {
+        boolean ready = ensureMappingsReady();
         boolean wasActive = state.isActive();
         boolean activated = state.setActive(active);
-        if (activated) {
+        if (active && ready && activated) {
             clearStaleInput();
         } else if (wasActive && !active) {
             keyboardSnapshot = null;
             mouseSnapshot = null;
-            restoreHeldKeyboardInput();
+            if (ready) {
+                restoreHeldKeyboardInput();
+            }
         }
     }
 
     private boolean beginKeyboard(KeyEvent event, int action) {
         keyboardSnapshot = null;
-        if (!state.isActive()) {
+        if (!state.isActive() || !ensureMappingsReady()) {
             return false;
         }
         List<KeyMapping> matched = matchingKeyboardMappings(event);
@@ -148,10 +145,14 @@ public final class InputLockCoordinator {
     }
 
     private boolean isBlocking() {
-        return state.isBlocking(minecraft.screen != null, minecraft.getOverlay() != null);
+        return ensureMappingsReady()
+                && state.isBlocking(minecraft.screen != null, minecraft.getOverlay() != null);
     }
 
     private void clearStaleInput() {
+        if (!ensureMappingsReady()) {
+            return;
+        }
         clearBlockedPendingToggleRestores();
         for (KeyMapping mapping : blockedMappings) {
             setDownExactly(mapping, false);
@@ -160,7 +161,7 @@ public final class InputLockCoordinator {
         keyboardSnapshot = null;
         mouseSnapshot = null;
         if (minecraft.mouseHandler instanceof MouseHandlerAccessor accessor) {
-            accessor.frostyAutoFish$resetLockedInput();
+            resetLockedMouseInput(accessor);
         }
     }
 
@@ -171,6 +172,9 @@ public final class InputLockCoordinator {
     }
 
     private List<KeyMapping> matchingKeyboardMappings(KeyEvent event) {
+        if (!ensureMappingsReady()) {
+            return List.of();
+        }
         List<KeyMapping> matched = new ArrayList<>();
         for (KeyMapping mapping : blockedMappings) {
             if (mapping.matches(event)) {
@@ -181,6 +185,9 @@ public final class InputLockCoordinator {
     }
 
     private List<KeyMapping> matchingMouseMappings(MouseButtonEvent event) {
+        if (!ensureMappingsReady()) {
+            return List.of();
+        }
         List<KeyMapping> matched = new ArrayList<>();
         for (KeyMapping mapping : blockedMappings) {
             if (mapping.matchesMouse(event)) {
@@ -191,6 +198,9 @@ public final class InputLockCoordinator {
     }
 
     private boolean matchesAllowedKeyboard(KeyEvent event) {
+        if (!ensureMappingsReady()) {
+            return false;
+        }
         for (KeyMapping mapping : allowedMappings) {
             if (mapping.matches(event)) {
                 return true;
@@ -200,6 +210,9 @@ public final class InputLockCoordinator {
     }
 
     private boolean matchesAllowedMouse(MouseButtonEvent event) {
+        if (!ensureMappingsReady()) {
+            return false;
+        }
         for (KeyMapping mapping : allowedMappings) {
             if (mapping.matchesMouse(event)) {
                 return true;
@@ -248,7 +261,24 @@ public final class InputLockCoordinator {
         ((KeyMappingAccessor) mapping).frostyAutoFish$setDownExactly(down);
     }
 
+    private static void resetLockedMouseInput(MouseHandlerAccessor accessor) {
+        accessor.frostyAutoFish$getSmoothTurnX().reset();
+        accessor.frostyAutoFish$getSmoothTurnY().reset();
+        accessor.frostyAutoFish$setAccumulatedDX(0.0);
+        accessor.frostyAutoFish$setAccumulatedDY(0.0);
+        accessor.frostyAutoFish$setLeftPressed(false);
+        accessor.frostyAutoFish$setMiddlePressed(false);
+        accessor.frostyAutoFish$setRightPressed(false);
+        accessor.frostyAutoFish$setActiveButton(null);
+        accessor.frostyAutoFish$setFakeRightMouse(0);
+        accessor.frostyAutoFish$setClickDepth(0);
+        accessor.frostyAutoFish$setMousePressedTime(0.0);
+    }
+
     private void clearBlockedPendingToggleRestores() {
+        if (!ensureMappingsReady()) {
+            return;
+        }
         for (KeyMapping mapping : blockedMappings) {
             if (mapping instanceof ToggleKeyMapping toggleMapping
                     && InputLockPolicy.shouldSuppressToggleRestore(state.isActive(), true)) {
@@ -256,6 +286,31 @@ public final class InputLockCoordinator {
                         .frostyAutoFish$setReleasedByScreenWhenDown(false);
             }
         }
+    }
+
+    private boolean ensureMappingsReady() {
+        if (mappingsReady) {
+            return true;
+        }
+        if (minecraft.options == null) {
+            return false;
+        }
+        blockedMappings = createBlockedMappings(minecraft);
+        allowedMappings = List.of(
+                toggleKey,
+                configKey,
+                minecraft.options.keyChat,
+                minecraft.options.keyCommand,
+                minecraft.options.keyInventory,
+                minecraft.options.keyAdvancements,
+                minecraft.options.keySocialInteractions,
+                minecraft.options.keyQuickActions
+        );
+        mappingsReady = true;
+        if (state.isActive()) {
+            clearStaleInput();
+        }
+        return true;
     }
 
     private static List<KeyMapping> createBlockedMappings(Minecraft minecraft) {
