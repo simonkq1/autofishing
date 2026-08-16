@@ -17,6 +17,8 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
     public static final String MOD_ID = "frosty_autofish";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
+    private static AutoFishController activeController;
+
     private ConfigManager configManager;
     private AutoFishController controller;
     private KeyMapping toggleKey;
@@ -49,11 +51,16 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
                 configKey
         );
         controller = new AutoFishController(minecraft, configManager.config(), inputLock);
+        activeController = controller;
 
         ClientTickEvents.END_CLIENT_TICK.register(this::onEndClientTick);
         ClientEntityEvents.ENTITY_LOAD.register(controller::onEntityLoad);
         NamedTargetCommands.register(configManager);
         LOGGER.info("Frosty AutoFish initialized");
+    }
+
+    public static HighValueTargetSnapshot highValueHudSnapshot() {
+        return activeController == null ? null : activeController.highValueHudSnapshot();
     }
 
     private void onEndClientTick(Minecraft minecraft) {

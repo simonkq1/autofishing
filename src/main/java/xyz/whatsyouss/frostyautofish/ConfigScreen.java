@@ -11,10 +11,10 @@ import xyz.whatsyouss.frostyautofish.config.ConfigManager;
 
 public final class ConfigScreen extends Screen {
     private static final int BUTTON_WIDTH = 160;
-    private static final int FOOTER_BUTTON_WIDTH = 104;
+    private static final int FOOTER_BUTTON_WIDTH = 82;
     private static final int BUTTON_HEIGHT = 20;
     private static final int COLUMN_GAP = 8;
-    private static final int ROW_GAP = 24;
+    private static final int ROW_GAP = 22;
 
     private final Screen parent;
     private final ConfigManager configManager;
@@ -33,7 +33,7 @@ public final class ConfigScreen extends Screen {
     protected void init() {
         int left = width / 2 - BUTTON_WIDTH - COLUMN_GAP / 2;
         int right = width / 2 + COLUMN_GAP / 2;
-        int y = height / 2 - 92;
+        int y = Math.max(42, height / 2 - 112);
 
         addRenderableWidget(CycleButton.onOffBuilder(working.autoThrow)
                 .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("Auto Throw"),
@@ -95,32 +95,61 @@ public final class ConfigScreen extends Screen {
                         Component.literal("Bite Detection"),
                         (button, value) -> working.biteDetection = value));
 
+        y += ROW_GAP;
+        addRenderableWidget(CycleButton.onOffBuilder(working.showHighValueCollision)
+                .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value Boxes"),
+                        (button, value) -> working.showHighValueCollision = value));
+        addRenderableWidget(CycleButton.onOffBuilder(working.showHighValueHud)
+                .create(right, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value HUD"),
+                        (button, value) -> working.showHighValueHud = value));
+
+        y += ROW_GAP;
+        addRenderableWidget(CycleButton.onOffBuilder(working.autoAttackHighValue)
+                .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value Attack"),
+                        (button, value) -> working.autoAttackHighValue = value));
+        addRenderableWidget(new IntSlider(
+                right, y, "High Value Hits", "", working.highValueAttackCount, 1, 10,
+                value -> working.highValueAttackCount = value
+        ));
+
         y += ROW_GAP + 8;
-        int footerLeft = width / 2 - FOOTER_BUTTON_WIDTH * 3 / 2 - COLUMN_GAP;
-        int footerMiddle = width / 2 - FOOTER_BUTTON_WIDTH / 2;
-        int footerRight = width / 2 + FOOTER_BUTTON_WIDTH / 2 + COLUMN_GAP;
-        addRenderableWidget(new Button.Builder(Component.literal("Reset Defaults"), button -> {
+        int footerLeft = width / 2 - FOOTER_BUTTON_WIDTH * 2 - COLUMN_GAP * 3 / 2;
+        addRenderableWidget(new Button.Builder(Component.literal("Reset"), button -> {
             working = new AutoFishConfig();
             rebuildWidgets();
         }).bounds(footerLeft, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT).build());
-        addRenderableWidget(new Button.Builder(Component.literal("Manage Targets"), button ->
-                minecraft.setScreen(new TargetManagementScreen(this, configManager)))
-                .bounds(footerMiddle, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
+        addRenderableWidget(new Button.Builder(Component.literal("Targets"), button ->
+                minecraft.setScreen(new TargetManagementScreen(
+                        this,
+                        configManager,
+                        TargetManagementScreen.TargetListKind.PLAYER_MODEL
+                )))
+                .bounds(footerLeft + FOOTER_BUTTON_WIDTH + COLUMN_GAP, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
+                .build());
+        addRenderableWidget(new Button.Builder(Component.literal("High Value"), button ->
+                minecraft.setScreen(new TargetManagementScreen(
+                        this,
+                        configManager,
+                        TargetManagementScreen.TargetListKind.HIGH_VALUE
+                )))
+                .bounds(footerLeft + (FOOTER_BUTTON_WIDTH + COLUMN_GAP) * 2, y,
+                        FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
         addRenderableWidget(new Button.Builder(Component.literal("Done"), button -> onClose())
-                .bounds(footerRight, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
+                .bounds(footerLeft + (FOOTER_BUTTON_WIDTH + COLUMN_GAP) * 3, y,
+                        FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT)
                 .build());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         extractMenuBackground(graphics);
-        graphics.centeredText(font, title, width / 2, height / 2 - 124, 0xFFFFFFFF);
+        graphics.centeredText(font, title, width / 2, 14, 0xFFFFFFFF);
         graphics.centeredText(
                 font,
                 Component.literal("Current state: " + controller.stateName()),
                 width / 2,
-                height / 2 - 108,
+                30,
                 controller.isEnabled() ? 0xFF55FFFF : 0xFFAAAAAA
         );
         super.extractRenderState(graphics, mouseX, mouseY, delta);
@@ -141,6 +170,10 @@ public final class ConfigScreen extends Screen {
 
     void syncNamedPlayerTargetsFromLiveConfig() {
         working.namedPlayerTargets = configManager.config().copy().namedPlayerTargets;
+    }
+
+    void syncHighValueTargetsFromLiveConfig() {
+        working.highValueTargets = configManager.config().copy().highValueTargets;
     }
 
     private static final class IntSlider extends AbstractSliderButton {

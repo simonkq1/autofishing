@@ -14,6 +14,7 @@ import xyz.whatsyouss.frostyautofish.config.TargetListEditor;
 import xyz.whatsyouss.frostyautofish.config.TargetNameMatcher;
 
 import java.util.List;
+import java.util.function.Function;
 
 public final class TargetManagementScreen extends Screen {
     private static final int INPUT_WIDTH = 220;
@@ -27,16 +28,23 @@ public final class TargetManagementScreen extends Screen {
 
     private final ConfigScreen parent;
     private final ConfigManager configManager;
+    private final TargetListKind kind;
     private EditBox nameInput;
     private String pendingName = "";
-    private Component statusMessage = Component.literal("Add player-model target names used by Auto Kill.");
+    private Component statusMessage;
     private int statusColor = 0xFFAAAAAA;
     private int page;
 
     public TargetManagementScreen(ConfigScreen parent, ConfigManager configManager) {
-        super(Component.literal("Player-Model Targets"));
+        this(parent, configManager, TargetListKind.PLAYER_MODEL);
+    }
+
+    public TargetManagementScreen(ConfigScreen parent, ConfigManager configManager, TargetListKind kind) {
+        super(Component.literal(kind.title));
         this.parent = parent;
         this.configManager = configManager;
+        this.kind = kind;
+        statusMessage = Component.literal(kind.description);
     }
 
     @Override
@@ -66,7 +74,7 @@ public final class TargetManagementScreen extends Screen {
 
         List<String> targets = targets();
         if (targets.isEmpty()) {
-            graphics.centeredText(font, Component.literal("No player-model targets"), width / 2, firstRowY() + 6,
+            graphics.centeredText(font, Component.literal("No " + kind.itemPlural), width / 2, firstRowY() + 6,
                     0xFFAAAAAA);
         } else {
             int start = page * rowsPerPage();
@@ -159,7 +167,7 @@ public final class TargetManagementScreen extends Screen {
         }
 
         pendingName = "";
-        saveAndSync("Added player-model target: " + result.normalizedName());
+        saveAndSync("Added " + kind.itemSingular + ": " + result.normalizedName());
     }
 
     private void removeTarget(String target) {
@@ -169,7 +177,7 @@ public final class TargetManagementScreen extends Screen {
             return;
         }
 
-        saveAndSync("Removed player-model target: " + result.normalizedName());
+        saveAndSync("Removed " + kind.itemSingular + ": " + result.normalizedName());
     }
 
     private void confirmClear() {
@@ -181,8 +189,8 @@ public final class TargetManagementScreen extends Screen {
         };
         minecraft.setScreen(new ConfirmScreen(
                 callback,
-                Component.literal("Clear All Targets?"),
-                Component.literal("Remove every player-model target from the list?"),
+                Component.literal("Clear All " + kind.confirmTitle + "?"),
+                Component.literal("Remove every " + kind.itemSingular + " from the list?"),
                 Component.literal("Clear All"),
                 Component.literal("Cancel")
         ));
@@ -190,7 +198,7 @@ public final class TargetManagementScreen extends Screen {
 
     private void clearTargets() {
         TargetListEditor.Result result = TargetListEditor.clear(targets());
-        saveAndSync("Cleared " + result.count() + " player-model target(s)");
+        saveAndSync("Cleared " + result.count() + " " + kind.itemSingular + "(s)");
     }
 
     private String rowLabel(int targetIndex) {
@@ -205,7 +213,7 @@ public final class TargetManagementScreen extends Screen {
 
     private void saveAndSync(String message) {
         configManager.save();
-        parent.syncNamedPlayerTargetsFromLiveConfig();
+        kind.sync(parent);
         statusMessage = Component.literal(message);
         statusColor = 0xFF55FF55;
         page = Math.min(page, maxPage());
@@ -225,7 +233,7 @@ public final class TargetManagementScreen extends Screen {
     }
 
     private List<String> targets() {
-        return configManager.config().namedPlayerTargets;
+        return kind.targets(configManager);
     }
 
     private int rowsPerPage() {
@@ -247,5 +255,63 @@ public final class TargetManagementScreen extends Screen {
 
     private int footerY() {
         return height - 34;
+    }
+
+    public enum TargetListKind {
+        PLAYER_MODEL(
+                "Player-Model Targets",
+                "Add player-model target names used by Auto Kill.",
+                "player-model target",
+                "player-model targets",
+                "Targets",
+                configManager -> configManager.config().namedPlayerTargets
+        ) {
+            @Override
+            void sync(ConfigScreen parent) {
+                parent.syncNamedPlayerTargetsFromLiveConfig();
+            }
+        },
+        HIGH_VALUE(
+                "High Value Targets",
+                "Add external high-value player-model names to track.",
+                "high-value target",
+                "high-value targets",
+                "High Value Targets",
+                configManager -> configManager.config().highValueTargets
+        ) {
+            @Override
+            void sync(ConfigScreen parent) {
+                parent.syncHighValueTargetsFromLiveConfig();
+            }
+        };
+
+        private final String title;
+        private final String description;
+        private final String itemSingular;
+        private final String itemPlural;
+        private final String confirmTitle;
+        private final Function<ConfigManager, List<String>> targets;
+
+        TargetListKind(
+                String title,
+                String description,
+                String itemSingular,
+                String itemPlural,
+                String confirmTitle,
+                Function<ConfigManager, List<String>> targets
+        ) {
+            this.title = title;
+            this.description = description;
+            this.itemSingular = itemSingular;
+            this.itemPlural = itemPlural;
+            this.confirmTitle = confirmTitle;
+            this.targets = targets;
+        }
+
+        private List<String> targets(ConfigManager configManager) {
+            return targets.apply(configManager);
+        }
+
+        abstract void sync(ConfigScreen parent);
     }
 }

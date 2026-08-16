@@ -16,7 +16,9 @@ public final class AutoFishConfigSelfTest {
         copyAndCopyFromKeepLockControls();
         lockControlsSurvivesSaveRoundTrip();
         namedPlayerTargetsAreNormalizedAndMatched();
+        highValueTargetsAreNormalizedAndMatched();
         targetListEditorEditsNames();
+        highValueSettingsSurviveCopyAndRoundTrip();
     }
 
     private static void legacyAndUnknownFieldsAreIgnored() {
@@ -50,6 +52,11 @@ public final class AutoFishConfigSelfTest {
         check(config.weaponSlot == 1, "weaponSlot default");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "biteDetection default");
         check(config.namedPlayerTargets.isEmpty(), "namedPlayerTargets default");
+        check(config.highValueTargets.isEmpty(), "highValueTargets default");
+        check(config.showHighValueCollision, "showHighValueCollision default");
+        check(config.showHighValueHud, "showHighValueHud default");
+        check(!config.autoAttackHighValue, "autoAttackHighValue default");
+        check(config.highValueAttackCount == 1, "highValueAttackCount default");
     }
 
     private static void lockControlsTrueIsParsed() {
@@ -65,6 +72,7 @@ public final class AutoFishConfigSelfTest {
                   "abilityDelayMillis": 5000,
                   "triggerAmount": -20,
                   "weaponSlot": 40,
+                  "highValueAttackCount": 99,
                   "abilityAim": "UNKNOWN",
                   "biteDetection": "UNKNOWN"
                 }
@@ -74,8 +82,12 @@ public final class AutoFishConfigSelfTest {
         check(config.abilityDelayMillis == 1000, "abilityDelayMillis clamp");
         check(config.triggerAmount == 1, "triggerAmount clamp");
         check(config.weaponSlot == 9, "weaponSlot clamp");
+        check(config.highValueAttackCount == 10, "highValueAttackCount maximum clamp");
         check(config.abilityAim == AutoFishConfig.AbilityAim.MOB, "abilityAim fallback");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "biteDetection fallback");
+
+        AutoFishConfig low = ConfigManager.parse("{\"highValueAttackCount\":0}");
+        check(low.highValueAttackCount == 1, "highValueAttackCount minimum clamp");
     }
 
     private static void malformedJsonFallsBackToDefaults() {
@@ -168,6 +180,56 @@ public final class AutoFishConfigSelfTest {
         check(cleared.success(), "target editor clear succeeds");
         check(cleared.count() == 2, "target editor clear count");
         check(targets.isEmpty(), "target editor clear writes");
+    }
+
+    private static void highValueTargetsAreNormalizedAndMatched() {
+        AutoFishConfig config = ConfigManager.parse("""
+                {
+                  "highValueTargets": [
+                    "  Shadow   Assassin  ",
+                    "shadow assassin",
+                    "Lava Blaze",
+                    "",
+                    null
+                  ]
+                }
+                """);
+        check(config.highValueTargets.size() == 2, "high value names deduplicated");
+        check(config.highValueTargets.get(0).equals("Shadow Assassin"), "high value whitespace normalized");
+        check(config.highValueTargets.get(1).equals("Lava Blaze"), "high value second target kept");
+        check(TargetNameMatcher.matches("Shadow Assassin", "[Lv500] SHADOW ASSASSIN 12M/12M"),
+                "high value target matched");
+        check(!TargetNameMatcher.matches("Shadow Assassin", "Water Hydra"),
+                "unrelated high value target rejected");
+    }
+
+    private static void highValueSettingsSurviveCopyAndRoundTrip() {
+        AutoFishConfig source = new AutoFishConfig();
+        source.highValueTargets.add("Shadow Assassin");
+        source.showHighValueCollision = false;
+        source.showHighValueHud = false;
+        source.autoAttackHighValue = true;
+        source.highValueAttackCount = 7;
+
+        AutoFishConfig copy = source.copy();
+        check(copy.highValueTargets.size() == 1, "copy keeps high value targets");
+        check(copy.highValueTargets.getFirst().equals("Shadow Assassin"), "copy keeps high value target name");
+        check(!copy.showHighValueCollision, "copy keeps high value collision false");
+        check(!copy.showHighValueHud, "copy keeps high value HUD false");
+        check(copy.autoAttackHighValue, "copy keeps high value auto attack true");
+        check(copy.highValueAttackCount == 7, "copy keeps high value attack count");
+
+        AutoFishConfig copiedInto = new AutoFishConfig();
+        copiedInto.copyFrom(source);
+        check(copiedInto.autoAttackHighValue, "copyFrom keeps high value auto attack true");
+        check(copiedInto.highValueAttackCount == 7, "copyFrom keeps high value attack count");
+
+        AutoFishConfig reloaded = ConfigManager.parse(ConfigManager.serialize(source));
+        check(reloaded.highValueTargets.size() == 1, "serialized high value targets reload");
+        check(!reloaded.showHighValueCollision, "serialized high value collision reloads false");
+        check(!reloaded.showHighValueHud, "serialized high value HUD reloads false");
+        check(reloaded.autoAttackHighValue, "serialized high value auto attack reloads true");
+        check(reloaded.highValueAttackCount == 7, "serialized high value attack count reloads");
     }
 
     private static void check(boolean condition, String name) {

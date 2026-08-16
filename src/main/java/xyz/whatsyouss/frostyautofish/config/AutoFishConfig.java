@@ -21,6 +21,11 @@ public final class AutoFishConfig {
     public int weaponSlot = 1;
     public BiteDetection biteDetection = BiteDetection.BOTH;
     public List<String> namedPlayerTargets = new ArrayList<>();
+    public List<String> highValueTargets = new ArrayList<>();
+    public boolean showHighValueCollision = true;
+    public boolean showHighValueHud = true;
+    public boolean autoAttackHighValue = false;
+    public int highValueAttackCount = 1;
 
     public void normalize() {
         maxWaitSeconds = clamp(maxWaitSeconds, 5, 60);
@@ -28,9 +33,11 @@ public final class AutoFishConfig {
         triggerAmount = clamp(triggerAmount, 1, 15);
         abilityDelayMillis = clamp(abilityDelayMillis, 50, 1000);
         weaponSlot = clamp(weaponSlot, 1, 9);
+        highValueAttackCount = clamp(highValueAttackCount, 1, 10);
         abilityAim = Objects.requireNonNullElse(abilityAim, AbilityAim.MOB);
         biteDetection = Objects.requireNonNullElse(biteDetection, BiteDetection.BOTH);
         namedPlayerTargets = normalizeTargetNames(namedPlayerTargets);
+        highValueTargets = normalizeTargetNames(highValueTargets);
     }
 
     public AutoFishConfig copy() {
@@ -49,6 +56,11 @@ public final class AutoFishConfig {
         copy.weaponSlot = weaponSlot;
         copy.biteDetection = biteDetection;
         copy.namedPlayerTargets = new ArrayList<>(namedPlayerTargets);
+        copy.highValueTargets = new ArrayList<>(highValueTargets);
+        copy.showHighValueCollision = showHighValueCollision;
+        copy.showHighValueHud = showHighValueHud;
+        copy.autoAttackHighValue = autoAttackHighValue;
+        copy.highValueAttackCount = highValueAttackCount;
         return copy;
     }
 
@@ -67,6 +79,11 @@ public final class AutoFishConfig {
         weaponSlot = other.weaponSlot;
         biteDetection = other.biteDetection;
         namedPlayerTargets = new ArrayList<>(other.namedPlayerTargets);
+        highValueTargets = new ArrayList<>(other.highValueTargets);
+        showHighValueCollision = other.showHighValueCollision;
+        showHighValueHud = other.showHighValueHud;
+        autoAttackHighValue = other.autoAttackHighValue;
+        highValueAttackCount = other.highValueAttackCount;
         normalize();
     }
 

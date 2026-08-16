@@ -50,6 +50,7 @@ public final class AutoFishController {
     private final AutoFishConfig config;
     private final InputLockCoordinator inputLock;
     private final RotationHelper rotation;
+    private final HighValueTargetTracker highValueTracker;
     private final BiteSignalGate biteSignalGate = new BiteSignalGate();
     private final GroundPathService pathService = new GroundPathService();
     private final Random random = new Random();
@@ -107,6 +108,7 @@ public final class AutoFishController {
         this.config = config;
         this.inputLock = inputLock;
         this.rotation = new RotationHelper(minecraft);
+        this.highValueTracker = new HighValueTargetTracker(minecraft, config, rotation);
     }
 
     public boolean isEnabled() {
@@ -129,6 +131,7 @@ public final class AutoFishController {
         if (!isEnabled()) {
             BackgroundRunState.setActive(false);
             inputLock.setActive(false);
+            highValueTracker.clear();
             return;
         }
         syncInputLock();
@@ -148,6 +151,29 @@ public final class AutoFishController {
         }
         if (abilityCooldown > 0) {
             abilityCooldown--;
+        }
+
+        boolean screenOrOverlayOpen = minecraft.screen != null || minecraft.getOverlay() != null;
+        boolean allowHighValueAttack = !screenOrOverlayOpen
+                && isRodStillAvailable()
+                && isRodSelectedForFishing()
+                && attackCooldown == 0;
+        boolean highValueCaptureAreaActive = HighValueTargetPolicy.shouldApplyOwnCaptureArea(
+                state == AutoFishState.COLLECTING,
+                gameTick(),
+                reelScanUntil
+        );
+        if (highValueTracker.tick(
+                true,
+                isCombatState(),
+                allowHighValueAttack,
+                ordinaryTargetIds(),
+                approvedPlayerTargetIds,
+                highValueCaptureAreaActive ? reelHookAnchor : null,
+                highValueCaptureAreaActive ? reelPlayerAnchor : null,
+                SEA_CREATURE_KEEP_RANGE
+        )) {
+            attackCooldown = 5;
         }
 
         if (minecraft.screen != null) {
@@ -195,6 +221,10 @@ public final class AutoFishController {
         inputLock.setActive(isEnabled() && config.lockControls);
     }
 
+    public HighValueTargetSnapshot highValueHudSnapshot() {
+        return isEnabled() ? highValueTracker.bestSnapshot() : null;
+    }
+
     public void onEntityLoad(Entity entity, ClientLevel level) {
         if (!isEnabled() || level != activeLevel || minecraft.player == null) {
             return;
@@ -232,6 +262,7 @@ public final class AutoFishController {
         startYaw = minecraft.player.getYRot();
         startPitch = minecraft.player.getXRot();
         clearTargets();
+        highValueTracker.clear();
         currentTarget = null;
         currentPath.clear();
         reelSnapshot.clear();
@@ -269,6 +300,7 @@ public final class AutoFishController {
         inputLock.setActive(false);
         BackgroundRunState.setActive(false);
         clearTargets();
+        highValueTracker.clear();
         currentTarget = null;
         currentPath.clear();
         reelSnapshot.clear();
@@ -797,6 +829,17 @@ public final class AutoFishController {
         approvedPlayerTargetIds.clear();
     }
 
+    private Set<Integer> ordinaryTargetIds() {
+        Set<Integer> ids = new HashSet<>();
+        if (currentTarget != null) {
+            ids.add(currentTarget.getId());
+        }
+        for (Entity target : targets) {
+            ids.add(target.getId());
+        }
+        return ids;
+    }
+
     private void rememberKilledSlime(Entity entity) {
         if (entity instanceof Slime) {
             lastKilledSlimePosition = entity.position();
@@ -962,11 +1005,13 @@ public final class AutoFishController {
     }
 
     private void renderDebugGizmos() {
-        if (minecraft.levelRenderer == null || (currentTarget == null && currentPath.isEmpty())) {
+        if (minecraft.levelRenderer == null
+                || (currentTarget == null && currentPath.isEmpty() && !highValueTracker.hasCollisionTargets())) {
             return;
         }
 
         try (Gizmos.TemporaryCollection ignored = minecraft.levelRenderer.collectPerFrameGizmos()) {
+            highValueTracker.renderGizmos();
             if (validTarget(currentTarget)) {
                 Gizmos.cuboid(
                         currentTarget.getBoundingBox(),

@@ -10,7 +10,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Fabric API 0.152.1+26.1.2 或更高的 26.1.2 兼容版本
 - Java 25
 
-将 `FrostyAutoFish-1.5.2+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
+将 `FrostyAutoFish-1.6+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
 `mods` 目录即可。此 Mod 只能安装在客户端。
 
 ## 操作
@@ -40,6 +40,10 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 | Ability Aim | Mob | 技能朝向目标或正下方 |
 | Weapon Slot | 1 | 自动击杀使用的快捷栏槽位 |
 | Bite Detection | Hypixel + Vanilla | 使用 `!!!` 标记和原版浮漂 biting 状态 |
+| High Value Boxes | 開 | 對外部高價值 player-model 目標顯示碰撞格 |
+| High Value HUD | 開 | 在 HUD 顯示最近的外部高價值目標、距離和攻擊進度 |
+| High Value Attack | 關 | 對外部高價值目標原地瞄準並自動攻擊 |
+| High Value Hits | 1 | 每個外部高價值目標最多自動攻擊次數，範圍 1–10 |
 
 近战模式会追击目标、显示路径并在完成后回到启用位置；技能模式会恢复使用技能前的视角。
 自动进入战斗时允许 Mod 临时切换到 Weapon Slot，不会被判定为玩家主动切走鱼竿；
@@ -61,9 +65,18 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   - `/frostyautofish target remove <名称>`
   - `/frostyautofish target list`
   - `/frostyautofish target clear`
-  也可以在 `F9` 配置页面中通过 `Manage Targets` 管理此名单。
+  也可以在 `F9` 配置页面中通过 `Targets` 管理此名单。
   名称匹配忽略大小写、颜色代码和多余空格，并允许等级、血量等前后缀。只有收竿后新出现且
   位于本地鱼钩/玩家捕获范围内的匹配玩家实体会被攻击。
+- 外部高價值 player-model 目標使用獨立名單，不會和普通 Auto Kill target 名單混在一起：
+  - `/frostyautofish highvalue add <名稱>`
+  - `/frostyautofish highvalue remove <名稱>`
+  - `/frostyautofish highvalue list`
+  - `/frostyautofish highvalue clear`
+  也可以在 `F9` 配置頁面中透過 `High Value` 管理此名單。AutoFish 啟用時，匹配此名單且不是本輪
+  自己收竿捕獲區或普通 Auto Kill 目標的玩家模型會觸發 High Value 反應。碰撞格、HUD 文字和
+  自動攻擊可分別開關；自動攻擊只會在無 GUI/overlay、非 Auto Kill combat、目標位於攻擊距離內時，
+  原地瞄準攻擊設定次數，不接管移動、不追擊、不切換武器。
 - 经名称白名单验证的玩家模型实体会在本轮目标生命周期内保留批准状态；技能未能在重试和
   超时上限内消灭目标时，Mod 会丢弃该目标，不会转入近战。
 - 每次抛竿后达到 Dry Timeout 仍没有咬钩时会直接收回自己的浮漂并重抛，不进入海怪收集；
@@ -94,7 +107,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 .\gradlew.bat build
 ```
 
-产物位于 `build\libs\FrostyAutoFish-1.5.2+26.1.2.jar`。
+产物位于 `build\libs\FrostyAutoFish-1.6+26.1.2.jar`。
 
 本目录是 26.1.2 专用兼容变体；请勿将其安装到 26.2 客户端。原始分析文档描述的
 Frosty 源码基线仍是 26.2，独立 Mod 的业务逻辑保持一致，仅适配游戏和 Fabric API 版本。
