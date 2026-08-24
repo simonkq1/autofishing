@@ -12,6 +12,9 @@ final class HighValueTargetPolicySelfTest {
         trackingRejectsOwnCaptureAreaAndDistantTargets();
         captureAreaOnlyAppliesDuringCurrentCollectionWindow();
         autoAttackRequiresSafeStateAndAttackBudget();
+        trackingContextResetsAtWorldAndPlayerBoundaries();
+        displayRequiresValidWorldAndNoGui();
+        scanPlanSeparatesMasterAndCaptureBehavior();
     }
 
     private static void matchingUsesConfiguredRules() {
@@ -81,22 +84,101 @@ final class HighValueTargetPolicySelfTest {
 
     private static void autoAttackRequiresSafeStateAndAttackBudget() {
         check(HighValueTargetPolicy.canAutoAttack(
-                true, false, false, true, true, 0, 1
+                true, true, true, true, false, false, true, true, 0, 1
         ), "auto attack is allowed in safe ready state");
         check(!HighValueTargetPolicy.canAutoAttack(
-                true, true, false, true, true, 0, 1
+                false, true, true, true, false, false, true, true, 0, 1
+        ), "disabled master blocks high value auto attack");
+        check(!HighValueTargetPolicy.canAutoAttack(
+                true, false, true, true, false, false, true, true, 0, 1
+        ), "disabled macro blocks high value auto attack");
+        check(!HighValueTargetPolicy.canAutoAttack(
+                true, true, true, false, false, false, true, true, 0, 1
+        ), "missing game mode blocks high value auto attack");
+        check(!HighValueTargetPolicy.canAutoAttack(
+                true, true, true, true, true, false, true, true, 0, 1
         ), "combat state blocks high value auto attack");
         check(!HighValueTargetPolicy.canAutoAttack(
-                true, false, true, true, true, 0, 1
+                true, true, true, true, false, true, true, true, 0, 1
         ), "screen or overlay blocks high value auto attack");
         check(!HighValueTargetPolicy.canAutoAttack(
-                true, false, false, true, true, 1, 1
+                true, true, true, true, false, false, true, true, 1, 1
         ), "attack count limit blocks high value auto attack");
         check(!HighValueTargetPolicy.canAutoAttack(
-                true, false, false, true, false, 0, 1
+                true, true, true, true, false, false, true, false, 0, 1
         ), "attack cooldown blocks high value auto attack");
         check(HighValueTargetPolicy.clampAttackCount(0) == 1, "attack count clamps low");
         check(HighValueTargetPolicy.clampAttackCount(99) == 10, "attack count clamps high");
+    }
+
+    private static void trackingContextResetsAtWorldAndPlayerBoundaries() {
+        check(!HighValueTargetPolicy.shouldResetTrackingContext(
+                true, true, true, true, true
+        ), "same living player and level preserve tracked targets");
+        check(HighValueTargetPolicy.shouldResetTrackingContext(
+                true, true, true, false, true
+        ), "level identity change resets tracked targets");
+        check(HighValueTargetPolicy.shouldResetTrackingContext(
+                true, true, true, true, false
+        ), "player identity change resets tracked targets");
+        check(HighValueTargetPolicy.shouldResetTrackingContext(
+                false, false, false, false, false
+        ), "missing world and player reset tracked targets");
+        check(HighValueTargetPolicy.shouldResetTrackingContext(
+                true, true, false, true, true
+        ), "dead player resets tracked targets");
+    }
+
+    private static void displayRequiresValidWorldAndNoGui() {
+        check(HighValueTargetPolicy.shouldShow(true, true, true, false),
+                "configured display shows with valid world and no GUI");
+        check(!HighValueTargetPolicy.shouldShow(false, true, true, false),
+                "disabled master hides high value display");
+        check(!HighValueTargetPolicy.shouldShow(true, false, true, false),
+                "disabled display setting remains hidden");
+        check(!HighValueTargetPolicy.shouldShow(true, true, false, false),
+                "invalid tracking context hides stale display");
+        check(!HighValueTargetPolicy.shouldShow(true, true, true, true),
+                "screen or overlay hides high value display");
+    }
+
+    private static void scanPlanSeparatesMasterAndCaptureBehavior() {
+        checkPlan(false, false, false, false, false, false,
+                "master off preserves tracked targets without scanning");
+        checkPlan(false, false, true, false, true, false,
+                "master off keeps capture bookkeeping without clearing");
+        checkPlan(false, true, false, false, false, false,
+                "master off ignores configured target matching");
+        checkPlan(false, true, true, false, true, false,
+                "master off only records capture IDs during capture window");
+        checkPlan(true, false, false, false, false, true,
+                "master on clears tracked targets for empty target list");
+        checkPlan(true, false, true, false, true, true,
+                "master on empty list clears and records capture IDs");
+        checkPlan(true, true, false, true, false, false,
+                "master on configured list performs matching");
+        checkPlan(true, true, true, true, false, false,
+                "full matching includes capture bookkeeping itself");
+    }
+
+    private static void checkPlan(
+            boolean masterEnabled,
+            boolean hasTargets,
+            boolean captureActive,
+            boolean matchTargets,
+            boolean recordCaptureOnly,
+            boolean clearTrackedTargets,
+            String name
+    ) {
+        HighValueTargetPolicy.ScanPlan plan = HighValueTargetPolicy.scanPlan(
+                masterEnabled,
+                hasTargets,
+                captureActive
+        );
+        check(plan.matchTargets() == matchTargets
+                        && plan.recordCaptureOnly() == recordCaptureOnly
+                        && plan.clearTrackedTargets() == clearTrackedTargets,
+                name);
     }
 
     private static void check(boolean condition, String name) {

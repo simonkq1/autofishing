@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -21,6 +22,8 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
 
     private ConfigManager configManager;
     private AutoFishController controller;
+    private ConfigScreen configScreen;
+    private KeyMapping highValueToggleKey;
     private KeyMapping toggleKey;
     private KeyMapping configKey;
 
@@ -39,6 +42,12 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
                 GLFW.GLFW_KEY_F8,
                 category
         ));
+        highValueToggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+                "key.frosty_autofish.high_value_toggle",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_F10,
+                category
+        ));
         configKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.frosty_autofish.config",
                 InputConstants.Type.KEYSYM,
@@ -47,6 +56,7 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
         ));
         InputLockCoordinator inputLock = InputLockCoordinator.initialize(
                 minecraft,
+                highValueToggleKey,
                 toggleKey,
                 configKey
         );
@@ -64,19 +74,36 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
     }
 
     private void onEndClientTick(Minecraft minecraft) {
+        while (highValueToggleKey.consumeClick()) {
+            toggleHighValue(minecraft);
+        }
         while (toggleKey.consumeClick()) {
             controller.toggle();
         }
         while (configKey.consumeClick()) {
             if (!(minecraft.screen instanceof ConfigScreen)) {
                 controller.disableForConfigScreen();
-                minecraft.setScreen(new ConfigScreen(
+                configScreen = new ConfigScreen(
                         minecraft.screen,
                         configManager,
                         controller
-                ));
+                );
+                minecraft.setScreen(configScreen);
             }
         }
         controller.tick();
+    }
+
+    private void toggleHighValue(Minecraft minecraft) {
+        boolean enabled = !configManager.config().highValueEnabled;
+        configManager.setHighValueEnabled(enabled);
+        if (configScreen != null) {
+            configScreen.syncHighValueEnabledFromLiveConfig(minecraft.screen == configScreen);
+        }
+        if (minecraft.gui != null) {
+            minecraft.gui.getChat().addClientSystemMessage(Component.literal(
+                    "§b[Frosty AutoFish] §fHigh Value: " + (enabled ? "ON" : "OFF")
+            ));
+        }
     }
 }

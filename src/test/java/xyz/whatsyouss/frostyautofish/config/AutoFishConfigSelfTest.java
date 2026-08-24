@@ -11,6 +11,7 @@ public final class AutoFishConfigSelfTest {
         defaultsAreStable();
         legacyAndUnknownFieldsAreIgnored();
         lockControlsTrueIsParsed();
+        highValueEnabledFalseIsParsed();
         valuesAreClampedAndNullEnumsFallBack();
         malformedJsonFallsBackToDefaults();
         copyAndCopyFromKeepLockControls();
@@ -34,6 +35,7 @@ public final class AutoFishConfigSelfTest {
         check(config.dryTimeoutSeconds == 15, "new dry timeout keeps default");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "new enum keeps default");
         check(!config.lockControls, "legacy config keeps lock controls disabled");
+        check(config.highValueEnabled, "legacy config keeps high value enabled");
     }
 
     private static void defaultsAreStable() {
@@ -53,6 +55,7 @@ public final class AutoFishConfigSelfTest {
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "biteDetection default");
         check(config.namedPlayerTargets.isEmpty(), "namedPlayerTargets default");
         check(config.highValueTargets.isEmpty(), "highValueTargets default");
+        check(config.highValueEnabled, "highValueEnabled default");
         check(config.showHighValueCollision, "showHighValueCollision default");
         check(config.showHighValueHud, "showHighValueHud default");
         check(!config.autoAttackHighValue, "autoAttackHighValue default");
@@ -62,6 +65,11 @@ public final class AutoFishConfigSelfTest {
     private static void lockControlsTrueIsParsed() {
         AutoFishConfig config = ConfigManager.parse("{\"lockControls\":true}");
         check(config.lockControls, "lockControls true parsed");
+    }
+
+    private static void highValueEnabledFalseIsParsed() {
+        AutoFishConfig config = ConfigManager.parse("{\"highValueEnabled\":false}");
+        check(!config.highValueEnabled, "highValueEnabled false parsed");
     }
 
     private static void valuesAreClampedAndNullEnumsFallBack() {
@@ -98,6 +106,7 @@ public final class AutoFishConfigSelfTest {
         check(config.triggerAmount == 3, "malformed JSON triggerAmount");
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "malformed JSON biteDetection");
         check(!config.lockControls, "malformed JSON lockControls default");
+        check(config.highValueEnabled, "malformed JSON highValueEnabled default");
     }
 
     private static void copyAndCopyFromKeepLockControls() {
@@ -206,6 +215,7 @@ public final class AutoFishConfigSelfTest {
     private static void highValueSettingsSurviveCopyAndRoundTrip() {
         AutoFishConfig source = new AutoFishConfig();
         source.highValueTargets.add("Shadow Assassin");
+        source.highValueEnabled = false;
         source.showHighValueCollision = false;
         source.showHighValueHud = false;
         source.autoAttackHighValue = true;
@@ -214,6 +224,7 @@ public final class AutoFishConfigSelfTest {
         AutoFishConfig copy = source.copy();
         check(copy.highValueTargets.size() == 1, "copy keeps high value targets");
         check(copy.highValueTargets.getFirst().equals("Shadow Assassin"), "copy keeps high value target name");
+        check(!copy.highValueEnabled, "copy keeps high value master false");
         check(!copy.showHighValueCollision, "copy keeps high value collision false");
         check(!copy.showHighValueHud, "copy keeps high value HUD false");
         check(copy.autoAttackHighValue, "copy keeps high value auto attack true");
@@ -221,11 +232,13 @@ public final class AutoFishConfigSelfTest {
 
         AutoFishConfig copiedInto = new AutoFishConfig();
         copiedInto.copyFrom(source);
+        check(!copiedInto.highValueEnabled, "copyFrom keeps high value master false");
         check(copiedInto.autoAttackHighValue, "copyFrom keeps high value auto attack true");
         check(copiedInto.highValueAttackCount == 7, "copyFrom keeps high value attack count");
 
         AutoFishConfig reloaded = ConfigManager.parse(ConfigManager.serialize(source));
         check(reloaded.highValueTargets.size() == 1, "serialized high value targets reload");
+        check(!reloaded.highValueEnabled, "serialized high value master reloads false");
         check(!reloaded.showHighValueCollision, "serialized high value collision reloads false");
         check(!reloaded.showHighValueHud, "serialized high value HUD reloads false");
         check(reloaded.autoAttackHighValue, "serialized high value auto attack reloads true");

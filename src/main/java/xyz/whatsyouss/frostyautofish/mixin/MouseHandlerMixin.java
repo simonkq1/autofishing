@@ -47,7 +47,8 @@ public abstract class MouseHandlerMixin {
             CallbackInfo callback
     ) {
         MouseButtonInfo effectiveButton = frostyAutoFish$effectiveButton(buttonInfo, action);
-        if (InputLockCoordinator.beginMouseButtonEvent(effectiveButton, action)) {
+        if (InputLockCoordinator.beginMouseButtonEvent(window, effectiveButton, action)) {
+            InputLockCoordinator.endMouseButtonEvent();
             callback.cancel();
         }
     }

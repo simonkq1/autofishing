@@ -8,6 +8,13 @@ final class HighValueTargetPolicy {
     static final int MIN_ATTACK_COUNT = 1;
     static final int MAX_ATTACK_COUNT = 10;
 
+    record ScanPlan(
+            boolean matchTargets,
+            boolean recordCaptureOnly,
+            boolean clearTrackedTargets
+    ) {
+    }
+
     private HighValueTargetPolicy() {
     }
 
@@ -45,7 +52,10 @@ final class HighValueTargetPolicy {
     }
 
     static boolean canAutoAttack(
+            boolean masterEnabled,
+            boolean macroEnabled,
             boolean enabled,
+            boolean gameModeAvailable,
             boolean combatState,
             boolean blockedByScreenOrOverlay,
             boolean inAttackRange,
@@ -53,12 +63,55 @@ final class HighValueTargetPolicy {
             int attacksDone,
             int attackLimit
     ) {
-        return enabled
+        return masterEnabled
+                && macroEnabled
+                && enabled
+                && gameModeAvailable
                 && !combatState
                 && !blockedByScreenOrOverlay
                 && inAttackRange
                 && attackReady
                 && attacksDone < clampAttackCount(attackLimit);
+    }
+
+    static boolean shouldResetTrackingContext(
+            boolean levelAvailable,
+            boolean playerAvailable,
+            boolean playerAlive,
+            boolean sameLevel,
+            boolean samePlayer
+    ) {
+        return !levelAvailable
+                || !playerAvailable
+                || !playerAlive
+                || !sameLevel
+                || !samePlayer;
+    }
+
+    static boolean shouldShow(
+            boolean masterEnabled,
+            boolean configured,
+            boolean validTrackingContext,
+            boolean blockedByScreenOrOverlay
+    ) {
+        return masterEnabled
+                && configured
+                && validTrackingContext
+                && !blockedByScreenOrOverlay;
+    }
+
+    static ScanPlan scanPlan(
+            boolean masterEnabled,
+            boolean hasConfiguredTargets,
+            boolean ownCaptureAreaActive
+    ) {
+        if (!masterEnabled) {
+            return new ScanPlan(false, ownCaptureAreaActive, false);
+        }
+        if (hasConfiguredTargets) {
+            return new ScanPlan(true, false, false);
+        }
+        return new ScanPlan(false, ownCaptureAreaActive, true);
     }
 
     static boolean shouldApplyOwnCaptureArea(boolean collectingState, long currentTick, long reelScanUntil) {

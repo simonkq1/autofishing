@@ -33,6 +33,8 @@ final class HighValueTargetTracker {
     private final Set<Integer> ownCapturedPlayerTargetIds = new HashSet<>();
 
     private ClientLevel activeLevel;
+    private Player activePlayer;
+    private boolean displayReady;
 
     HighValueTargetTracker(Minecraft minecraft, AutoFishConfig config, RotationHelper rotation) {
         this.minecraft = minecraft;
@@ -50,23 +52,60 @@ final class HighValueTargetTracker {
             Vec3 reelPlayerAnchor,
             double keepRange
     ) {
-        if (!autoFishEnabled || minecraft.level == null || minecraft.player == null || minecraft.gameMode == null) {
+        boolean levelAvailable = minecraft.level != null;
+        boolean playerAvailable = minecraft.player != null;
+        boolean playerAlive = playerAvailable && minecraft.player.isAlive();
+        boolean sameLevel = levelAvailable && activeLevel == minecraft.level;
+        boolean samePlayer = playerAvailable && activePlayer == minecraft.player;
+        if (HighValueTargetPolicy.shouldResetTrackingContext(
+                levelAvailable,
+                playerAvailable,
+                playerAlive,
+                sameLevel,
+                samePlayer
+        )) {
             clear();
+            if (!levelAvailable || !playerAvailable || !playerAlive) {
+                return false;
+            }
+            activeLevel = minecraft.level;
+            activePlayer = minecraft.player;
+        }
+        if (!hasValidTrackingContext()) {
             return false;
         }
-        if (activeLevel != minecraft.level) {
-            clear();
-            activeLevel = minecraft.level;
+
+        HighValueTargetPolicy.ScanPlan scanPlan = HighValueTargetPolicy.scanPlan(
+                config.highValueEnabled,
+                !config.highValueTargets.isEmpty(),
+                reelHookAnchor != null && reelPlayerAnchor != null
+        );
+        if (scanPlan.clearTrackedTargets()) {
+            trackedTargets.clear();
+        }
+        if (scanPlan.recordCaptureOnly()) {
+            recordOwnCapturedPlayerTargets(reelHookAnchor, reelPlayerAnchor);
+        }
+        if (!scanPlan.matchTargets()) {
+            displayReady = config.highValueEnabled;
+            return false;
         }
 
+        displayReady = false;
         long tick = minecraft.level.getGameTime();
         scan(tick, ordinaryAutoKillTargetIds, approvedPlayerTargetIds, reelHookAnchor, reelPlayerAnchor, keepRange);
         prune(tick, ordinaryAutoKillTargetIds, approvedPlayerTargetIds, reelHookAnchor, reelPlayerAnchor, keepRange);
-        return tryAutoAttack(combatState, allowAutoAttack);
+        displayReady = true;
+        return tryAutoAttack(autoFishEnabled, combatState, allowAutoAttack);
     }
 
     HighValueTargetSnapshot bestSnapshot() {
-        if (!config.showHighValueHud) {
+        if (!HighValueTargetPolicy.shouldShow(
+                config.highValueEnabled,
+                config.showHighValueHud,
+                hasValidTrackingContext(),
+                isScreenOrOverlayOpen()
+        ) || !displayReady) {
             return null;
         }
         TrackedTarget best = bestTarget();
@@ -83,11 +122,21 @@ final class HighValueTargetTracker {
     }
 
     boolean hasCollisionTargets() {
-        return config.showHighValueCollision && !trackedTargets.isEmpty();
+        return HighValueTargetPolicy.shouldShow(
+                config.highValueEnabled,
+                config.showHighValueCollision,
+                hasValidTrackingContext(),
+                isScreenOrOverlayOpen()
+        ) && displayReady && !trackedTargets.isEmpty();
     }
 
     void renderGizmos() {
-        if (!config.showHighValueCollision) {
+        if (!HighValueTargetPolicy.shouldShow(
+                config.highValueEnabled,
+                config.showHighValueCollision,
+                hasValidTrackingContext(),
+                isScreenOrOverlayOpen()
+        ) || !displayReady) {
             return;
         }
         for (TrackedTarget tracked : trackedTargets.values()) {
@@ -104,6 +153,8 @@ final class HighValueTargetTracker {
         trackedTargets.clear();
         ownCapturedPlayerTargetIds.clear();
         activeLevel = null;
+        activePlayer = null;
+        displayReady = false;
     }
 
     private void scan(
@@ -118,11 +169,13 @@ final class HighValueTargetTracker {
             if (!(entity instanceof Player playerModel)) {
                 continue;
             }
-            String matchedName = matchingName(playerModel);
+            List<String> observedNames = observedNames(playerModel);
+            String matchedName = matchingName(playerModel, observedNames);
             boolean insideOwnCaptureArea = isInsideOwnCaptureArea(entity, reelHookAnchor, reelPlayerAnchor);
             if (insideOwnCaptureArea) {
                 ownCapturedPlayerTargetIds.add(entity.getId());
             }
+            double distance = minecraft.player.distanceTo(entity);
             boolean shouldTrack = HighValueTargetPolicy.shouldTrack(
                     matchedName != null,
                     entity == minecraft.player,
@@ -133,7 +186,7 @@ final class HighValueTargetTracker {
                             insideOwnCaptureArea,
                             ownCapturedPlayerTargetIds.contains(entity.getId())
                     ),
-                    minecraft.player.distanceTo(entity),
+                    distance,
                     keepRange
             );
             if (!shouldTrack) {
@@ -146,10 +199,20 @@ final class HighValueTargetTracker {
                         : existing;
                 tracked.entity = playerModel;
                 tracked.name = matchedName;
-                tracked.distance = minecraft.player.distanceTo(entity);
+                tracked.distance = distance;
                 tracked.lastSeenTick = tick;
                 return tracked;
             });
+        }
+    }
+
+    private void recordOwnCapturedPlayerTargets(Vec3 reelHookAnchor, Vec3 reelPlayerAnchor) {
+        for (Entity entity : minecraft.level.entitiesForRendering()) {
+            if (entity instanceof Player
+                    && entity != minecraft.player
+                    && isInsideOwnCaptureArea(entity, reelHookAnchor, reelPlayerAnchor)) {
+                ownCapturedPlayerTargetIds.add(entity.getId());
+            }
         }
     }
 
@@ -178,7 +241,7 @@ final class HighValueTargetTracker {
         }
     }
 
-    private boolean tryAutoAttack(boolean combatState, boolean allowAutoAttack) {
+    private boolean tryAutoAttack(boolean autoFishEnabled, boolean combatState, boolean allowAutoAttack) {
         TrackedTarget best = bestTarget();
         if (best == null || !allowAutoAttack) {
             return false;
@@ -186,9 +249,12 @@ final class HighValueTargetTracker {
         Entity target = best.entity;
         Vec3 aim = target.position().add(0.0, target.getBbHeight() / 2.0, 0.0);
         boolean canTry = HighValueTargetPolicy.canAutoAttack(
+                config.highValueEnabled,
+                autoFishEnabled,
                 config.autoAttackHighValue,
+                minecraft.gameMode != null,
                 combatState,
-                minecraft.screen != null || minecraft.getOverlay() != null,
+                isScreenOrOverlayOpen(),
                 minecraft.player.distanceTo(target) <= ATTACK_RANGE,
                 true,
                 best.attacksDone,
@@ -209,6 +275,18 @@ final class HighValueTargetTracker {
         return true;
     }
 
+    private boolean hasValidTrackingContext() {
+        return activeLevel != null
+                && activePlayer != null
+                && minecraft.level == activeLevel
+                && minecraft.player == activePlayer
+                && activePlayer.isAlive();
+    }
+
+    private boolean isScreenOrOverlayOpen() {
+        return minecraft.screen != null || minecraft.getOverlay() != null;
+    }
+
     private TrackedTarget bestTarget() {
         TrackedTarget best = null;
         for (TrackedTarget tracked : trackedTargets.values()) {
@@ -222,8 +300,7 @@ final class HighValueTargetTracker {
         return best;
     }
 
-    private String matchingName(Player playerModel) {
-        List<String> observedNames = observedNames(playerModel);
+    private String matchingName(Player playerModel, List<String> observedNames) {
         if (!HighValueTargetPolicy.matchesAny(config.highValueTargets, observedNames)) {
             return null;
         }

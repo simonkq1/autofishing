@@ -1,5 +1,6 @@
 {
   "key.category.frosty_autofish": "Frosty 自动钓鱼",
   "key.frosty_autofish.toggle": "启用/关闭自动钓鱼",
-  "key.frosty_autofish.config": "打开自动钓鱼设置"
+  "key.frosty_autofish.config": "打开自动钓鱼设置",
+  "key.frosty_autofish.high_value_toggle": "启用/关闭高价值目标追踪"
 }

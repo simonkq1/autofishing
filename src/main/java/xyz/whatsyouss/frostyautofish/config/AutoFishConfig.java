@@ -22,6 +22,7 @@ public final class AutoFishConfig {
     public BiteDetection biteDetection = BiteDetection.BOTH;
     public List<String> namedPlayerTargets = new ArrayList<>();
     public List<String> highValueTargets = new ArrayList<>();
+    public boolean highValueEnabled = true;
     public boolean showHighValueCollision = true;
     public boolean showHighValueHud = true;
     public boolean autoAttackHighValue = false;
@@ -57,6 +58,7 @@ public final class AutoFishConfig {
         copy.biteDetection = biteDetection;
         copy.namedPlayerTargets = new ArrayList<>(namedPlayerTargets);
         copy.highValueTargets = new ArrayList<>(highValueTargets);
+        copy.highValueEnabled = highValueEnabled;
         copy.showHighValueCollision = showHighValueCollision;
         copy.showHighValueHud = showHighValueHud;
         copy.autoAttackHighValue = autoAttackHighValue;
@@ -80,6 +82,7 @@ public final class AutoFishConfig {
         biteDetection = other.biteDetection;
         namedPlayerTargets = new ArrayList<>(other.namedPlayerTargets);
         highValueTargets = new ArrayList<>(other.highValueTargets);
+        highValueEnabled = other.highValueEnabled;
         showHighValueCollision = other.showHighValueCollision;
         showHighValueHud = other.showHighValueHud;
         autoAttackHighValue = other.autoAttackHighValue;

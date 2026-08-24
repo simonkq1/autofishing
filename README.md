@@ -17,6 +17,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 
 - `F8`：启用或关闭自动钓鱼。
 - `F9`：打开配置页面。
+- `F10`：啟用或關閉 High Value 功能。
 - 快捷键可以在 Minecraft 的“控制”设置中修改。
 - 启用前，主手或副手必须拿着钓鱼竿。
 
@@ -40,9 +41,10 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 | Ability Aim | Mob | 技能朝向目标或正下方 |
 | Weapon Slot | 1 | 自动击杀使用的快捷栏槽位 |
 | Bite Detection | Hypixel + Vanilla | 使用 `!!!` 标记和原版浮漂 biting 状态 |
-| High Value Boxes | 開 | 對外部高價值 player-model 目標顯示碰撞格 |
-| High Value HUD | 開 | 在 HUD 顯示最近的外部高價值目標、距離和攻擊進度 |
-| High Value Attack | 關 | 對外部高價值目標原地瞄準並自動攻擊 |
+| High Value Enabled | 開 | High Value 的總開關；關閉後停止目標匹配、顯示與自動攻擊 |
+| High Value Boxes | 開 | 進入世界後常駐顯示外部高價值 player-model 目標的碰撞格 |
+| High Value HUD | 開 | 進入世界後在 HUD 常駐顯示最近的外部高價值目標、距離和攻擊進度 |
+| High Value Attack | 關 | 僅在 AutoFish 啟用時對外部高價值目標原地瞄準並自動攻擊 |
 | High Value Hits | 1 | 每個外部高價值目標最多自動攻擊次數，範圍 1–10 |
 
 近战模式会追击目标、显示路径并在完成后回到启用位置；技能模式会恢复使用技能前的视角。
@@ -73,10 +75,17 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   - `/frostyautofish highvalue remove <名稱>`
   - `/frostyautofish highvalue list`
   - `/frostyautofish highvalue clear`
-  也可以在 `F9` 配置頁面中透過 `High Value` 管理此名單。AutoFish 啟用時，匹配此名單且不是本輪
-  自己收竿捕獲區或普通 Auto Kill 目標的玩家模型會觸發 High Value 反應。碰撞格、HUD 文字和
-  自動攻擊可分別開關；自動攻擊只會在無 GUI/overlay、非 Auto Kill combat、目標位於攻擊距離內時，
-  原地瞄準攻擊設定次數，不接管移動、不追擊、不切換武器。
+  也可以在 `F9` 配置頁面中透過 `High Value` 管理此名單。玩家進入世界後即會持續掃描匹配此名單，
+  且不是本輪自己收竿捕獲區或普通 Auto Kill 目標的玩家模型；不需要啟用 AutoFish，按 `F8` 停止後
+  碰撞格和 HUD 文字也會繼續顯示。Screen 或 overlay 開啟期間只會暫停顯示，背景追蹤仍會更新，
+  關閉介面後自動恢復。碰撞格、HUD 文字和自動攻擊可分別開關。
+  `F10`（可在 Minecraft「控制」中重綁）或 `High Value Enabled` 可切換總開關；`F10` 在 Screen、overlay
+  及 Lock Controls 生效期間仍可使用。快捷鍵切換會立即儲存至 JSON，並顯示一次
+  `High Value: ON/OFF` client status 提示。總開關關閉時會立即隱藏碰撞格和 HUD，停止完整名稱匹配及
+  自動攻擊，但保留目前世界的攻擊次數與自己捕獲目標安全紀錄；重新開啟後會先刷新目標再恢復顯示。
+  High Value 不會發送目標偵測聊天通知，僅 `F10` 切換總開關時顯示上述狀態提示。
+  即使開啟 High Value Attack，也只會在 AutoFish 已啟用、無 Screen/overlay、非 Auto Kill combat、
+  目標位於攻擊距離內且符合既有限制時，原地瞄準攻擊設定次數，不接管移動、不追擊、不切換武器。
 - 经名称白名单验证的玩家模型实体会在本轮目标生命周期内保留批准状态；技能未能在重试和
   超时上限内消灭目标时，Mod 会丢弃该目标，不会转入近战。
 - 每次抛竿后达到 Dry Timeout 仍没有咬钩时会直接收回自己的浮漂并重抛，不进入海怪收集；
@@ -90,7 +99,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Lock Controls 启用后，会在 AutoFish 运行且没有打开 Screen 或 overlay 时拦截物理鼠标转向、攻击和
   使用，以及前后左右移动、跳跃、潜行、疾跑、快捷栏 1–9、选取方块槽位和世界内滚轮切换。
   世界中锁定视角时会显示鼠标游标；解除锁定后，会在回到游戏世界时恢复隐藏游标与视角控制。
-  `F8`、`F9`（包括改键后）、聊天、命令、`Escape`、背包和其他界面快捷键仍可使用。
+  `F8`、`F9`、`F10`（包括改键后）、聊天、命令、`Escape`、背包和其他界面快捷键仍可使用。
 - 任意 Screen 或 overlay 打开时会暂时解除 Lock Controls，所有输入正常工作；Screen 打开期间，
   AutoFish 会按现有逻辑暂停自动流程并释放移动键。AutoFish 自己的移动、瞄准、攻击、使用物品和
   槽位切换不受此物理输入锁影响。

@@ -21,7 +21,7 @@ public abstract class KeyboardHandlerMixin {
             KeyEvent event,
             CallbackInfo callback
     ) {
-        if (InputLockCoordinator.beginKeyboardEvent(event, action)) {
+        if (InputLockCoordinator.beginKeyboardEvent(window, event, action)) {
             callback.cancel();
         }
     }

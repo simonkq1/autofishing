@@ -11,6 +11,7 @@ import xyz.whatsyouss.frostyautofish.config.ConfigManager;
 
 public final class ConfigScreen extends Screen {
     private static final int BUTTON_WIDTH = 160;
+    private static final int HIGH_VALUE_BUTTON_WIDTH = 104;
     private static final int FOOTER_BUTTON_WIDTH = 82;
     private static final int BUTTON_HEIGHT = 20;
     private static final int COLUMN_GAP = 8;
@@ -96,26 +97,33 @@ public final class ConfigScreen extends Screen {
                         (button, value) -> working.biteDetection = value));
 
         y += ROW_GAP;
-        addRenderableWidget(CycleButton.onOffBuilder(working.showHighValueCollision)
-                .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value Boxes"),
-                        (button, value) -> working.showHighValueCollision = value));
-        addRenderableWidget(CycleButton.onOffBuilder(working.showHighValueHud)
-                .create(right, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value HUD"),
-                        (button, value) -> working.showHighValueHud = value));
-
-        y += ROW_GAP;
-        addRenderableWidget(CycleButton.onOffBuilder(working.autoAttackHighValue)
-                .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value Attack"),
-                        (button, value) -> working.autoAttackHighValue = value));
+        addRenderableWidget(CycleButton.onOffBuilder(working.highValueEnabled)
+                .create(left, y, BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("High Value Enabled"),
+                        (button, value) -> setHighValueEnabled(value)));
         addRenderableWidget(new IntSlider(
                 right, y, "High Value Hits", "", working.highValueAttackCount, 1, 10,
                 value -> working.highValueAttackCount = value
         ));
 
+        y += ROW_GAP;
+        int highValueLeft = width / 2 - (HIGH_VALUE_BUTTON_WIDTH * 3 + COLUMN_GAP * 2) / 2;
+        addRenderableWidget(CycleButton.onOffBuilder(working.showHighValueCollision)
+                .create(highValueLeft, y, HIGH_VALUE_BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("HV Boxes"),
+                        (button, value) -> working.showHighValueCollision = value));
+        addRenderableWidget(CycleButton.onOffBuilder(working.showHighValueHud)
+                .create(highValueLeft + HIGH_VALUE_BUTTON_WIDTH + COLUMN_GAP, y,
+                        HIGH_VALUE_BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("HV HUD"),
+                        (button, value) -> working.showHighValueHud = value));
+        addRenderableWidget(CycleButton.onOffBuilder(working.autoAttackHighValue)
+                .create(highValueLeft + (HIGH_VALUE_BUTTON_WIDTH + COLUMN_GAP) * 2, y,
+                        HIGH_VALUE_BUTTON_WIDTH, BUTTON_HEIGHT, Component.literal("HV Attack"),
+                        (button, value) -> working.autoAttackHighValue = value));
+
         y += ROW_GAP + 8;
         int footerLeft = width / 2 - FOOTER_BUTTON_WIDTH * 2 - COLUMN_GAP * 3 / 2;
         addRenderableWidget(new Button.Builder(Component.literal("Reset"), button -> {
             working = new AutoFishConfig();
+            configManager.setHighValueEnabled(working.highValueEnabled);
             rebuildWidgets();
         }).bounds(footerLeft, y, FOOTER_BUTTON_WIDTH, BUTTON_HEIGHT).build());
         addRenderableWidget(new Button.Builder(Component.literal("Targets"), button ->
@@ -157,6 +165,7 @@ public final class ConfigScreen extends Screen {
 
     @Override
     public void onClose() {
+        working.highValueEnabled = configManager.config().highValueEnabled;
         configManager.config().copyFrom(working);
         controller.syncInputLock();
         configManager.save();
@@ -174,6 +183,18 @@ public final class ConfigScreen extends Screen {
 
     void syncHighValueTargetsFromLiveConfig() {
         working.highValueTargets = configManager.config().copy().highValueTargets;
+    }
+
+    void syncHighValueEnabledFromLiveConfig(boolean rebuild) {
+        working.highValueEnabled = configManager.config().highValueEnabled;
+        if (rebuild && minecraft != null) {
+            rebuildWidgets();
+        }
+    }
+
+    private void setHighValueEnabled(boolean enabled) {
+        working.highValueEnabled = enabled;
+        configManager.setHighValueEnabled(enabled);
     }
 
     private static final class IntSlider extends AbstractSliderButton {

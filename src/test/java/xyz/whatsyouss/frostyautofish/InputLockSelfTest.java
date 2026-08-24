@@ -11,6 +11,8 @@ final class InputLockSelfTest {
         policyBlocksOnlyGameplayPressesAndRepeats();
         releasesAndAllowedCollisionsPassForCleanup();
         toggleRestorePolicyOnlySuppressesActiveBlockedMappings();
+        highValueHotkeyProducesOneClickAcrossGuiPaths();
+        repeatedHighValueMousePressDoesNotRetoggle();
     }
 
     private static void stateActivatesOnlyOnTheRisingEdge() {
@@ -74,6 +76,48 @@ final class InputLockSelfTest {
                 "inactive blocked toggle restore passes");
         check(!InputLockPolicy.shouldSuppressToggleRestore(true, false),
                 "active allowed toggle restore passes");
+    }
+
+    private static void highValueHotkeyProducesOneClickAcrossGuiPaths() {
+        check(InputLockPolicy.reconcileHotkeyClicks(
+                InputLockPolicy.Phase.PRESS, true, 0, 0
+        ) == 1, "consumed GUI press synthesizes the missing high value click");
+        check(InputLockPolicy.reconcileHotkeyClicks(
+                InputLockPolicy.Phase.PRESS, true, 2, 3
+        ) == 3, "vanilla world press is not duplicated");
+        check(InputLockPolicy.reconcileHotkeyClicks(
+                InputLockPolicy.Phase.REPEAT, true, 2, 3
+        ) == 2, "held high value key does not repeatedly toggle");
+        check(InputLockPolicy.reconcileHotkeyClicks(
+                InputLockPolicy.Phase.RELEASE, true, 2, 2
+        ) == 2, "release does not create a high value click");
+        check(InputLockPolicy.reconcileHotkeyClicks(
+                InputLockPolicy.Phase.PRESS, false, 2, 5
+        ) == 5, "unrelated key click state is untouched");
+    }
+
+    private static void repeatedHighValueMousePressDoesNotRetoggle() {
+        InputLockPolicy.Phase firstPress = InputLockPolicy.normalizeMouseHotkeyPhase(
+                InputLockPolicy.Phase.PRESS, true, false
+        );
+        check(firstPress == InputLockPolicy.Phase.PRESS,
+                "first matching mouse press remains a press");
+        check(InputLockPolicy.reconcileHotkeyClicks(firstPress, true, 0, 0) == 1,
+                "first GUI mouse press synthesizes one high value click");
+
+        InputLockPolicy.Phase repeatedPress = InputLockPolicy.normalizeMouseHotkeyPhase(
+                InputLockPolicy.Phase.PRESS, true, true
+        );
+        check(repeatedPress == InputLockPolicy.Phase.REPEAT,
+                "repeated matching mouse press is normalized to repeat");
+        check(InputLockPolicy.reconcileHotkeyClicks(repeatedPress, true, 1, 2) == 1,
+                "repeated mouse press removes a duplicate vanilla click");
+        check(InputLockPolicy.normalizeMouseHotkeyPhase(
+                InputLockPolicy.Phase.RELEASE, true, true
+        ) == InputLockPolicy.Phase.RELEASE, "mouse release is never synthesized");
+        check(InputLockPolicy.normalizeMouseHotkeyPhase(
+                InputLockPolicy.Phase.PRESS, false, true
+        ) == InputLockPolicy.Phase.PRESS, "unrelated mouse press is unchanged");
     }
 
     private static InputLockPolicy.Decision decide(

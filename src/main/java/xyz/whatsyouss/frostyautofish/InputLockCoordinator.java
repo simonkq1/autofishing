@@ -19,6 +19,7 @@ public final class InputLockCoordinator {
     private static InputLockCoordinator instance;
 
     private final Minecraft minecraft;
+    private final KeyMapping highValueToggleKey;
     private final KeyMapping toggleKey;
     private final KeyMapping configKey;
     private final InputLockState state = new InputLockState();
@@ -28,23 +29,28 @@ public final class InputLockCoordinator {
     private boolean cursorReleasedByLock;
     private EventSnapshot keyboardSnapshot;
     private EventSnapshot mouseSnapshot;
+    private HotkeyClickSnapshot highValueClickSnapshot;
+    private int highValueMouseButtonDown = -1;
 
     private InputLockCoordinator(
             Minecraft minecraft,
+            KeyMapping highValueToggleKey,
             KeyMapping toggleKey,
             KeyMapping configKey
     ) {
         this.minecraft = minecraft;
+        this.highValueToggleKey = highValueToggleKey;
         this.toggleKey = toggleKey;
         this.configKey = configKey;
     }
 
     public static InputLockCoordinator initialize(
             Minecraft minecraft,
+            KeyMapping highValueToggleKey,
             KeyMapping toggleKey,
             KeyMapping configKey
     ) {
-        instance = new InputLockCoordinator(minecraft, toggleKey, configKey);
+        instance = new InputLockCoordinator(minecraft, highValueToggleKey, toggleKey, configKey);
         return instance;
     }
 
@@ -56,22 +62,24 @@ public final class InputLockCoordinator {
         return instance != null && instance.isBlocking();
     }
 
-    public static boolean beginKeyboardEvent(KeyEvent event, int action) {
-        return instance != null && instance.beginKeyboard(event, action);
+    public static boolean beginKeyboardEvent(long window, KeyEvent event, int action) {
+        return instance != null && instance.beginKeyboard(window, event, action);
     }
 
     public static void endKeyboardEvent() {
         if (instance != null) {
+            instance.reconcileHighValueClick();
             instance.keyboardSnapshot = instance.restore(instance.keyboardSnapshot);
         }
     }
 
-    public static boolean beginMouseButtonEvent(MouseButtonInfo buttonInfo, int action) {
-        return instance != null && instance.beginMouse(buttonInfo, action);
+    public static boolean beginMouseButtonEvent(long window, MouseButtonInfo buttonInfo, int action) {
+        return instance != null && instance.beginMouse(window, buttonInfo, action);
     }
 
     public static void endMouseButtonEvent() {
         if (instance != null) {
+            instance.reconcileHighValueClick();
             instance.mouseSnapshot = instance.restore(instance.mouseSnapshot);
         }
     }
@@ -96,6 +104,7 @@ public final class InputLockCoordinator {
         } else if (wasActive && !active) {
             keyboardSnapshot = null;
             mouseSnapshot = null;
+            highValueClickSnapshot = null;
             if (ready) {
                 restoreHeldKeyboardInput();
             }
@@ -103,8 +112,9 @@ public final class InputLockCoordinator {
         syncCursorVisibility();
     }
 
-    private boolean beginKeyboard(KeyEvent event, int action) {
+    private boolean beginKeyboard(long window, KeyEvent event, int action) {
         keyboardSnapshot = null;
+        beginHighValueClick(window, event, action);
         if (!state.isActive() || !ensureMappingsReady()) {
             return false;
         }
@@ -127,8 +137,38 @@ public final class InputLockCoordinator {
         return decision == InputLockPolicy.Decision.BLOCK;
     }
 
-    private boolean beginMouse(MouseButtonInfo buttonInfo, int action) {
+    private void beginHighValueClick(long window, KeyEvent event, int action) {
+        boolean matches = window == minecraft.getWindow().handle() && highValueToggleKey.matches(event);
+        beginHighValueClick(matches, phase(action));
+    }
+
+    private void beginHighValueClick(boolean matches, InputLockPolicy.Phase phase) {
+        int clickCount = ((KeyMappingAccessor) highValueToggleKey).frostyAutoFish$getClickCount();
+        highValueClickSnapshot = new HotkeyClickSnapshot(matches, phase, clickCount);
+    }
+
+    private void reconcileHighValueClick() {
+        HotkeyClickSnapshot snapshot = highValueClickSnapshot;
+        highValueClickSnapshot = null;
+        if (snapshot == null) {
+            return;
+        }
+        KeyMappingAccessor accessor = (KeyMappingAccessor) highValueToggleKey;
+        int current = accessor.frostyAutoFish$getClickCount();
+        int reconciled = InputLockPolicy.reconcileHotkeyClicks(
+                snapshot.phase,
+                snapshot.matches,
+                snapshot.clickCount,
+                current
+        );
+        if (reconciled != current) {
+            accessor.frostyAutoFish$setClickCount(reconciled);
+        }
+    }
+
+    private boolean beginMouse(long window, MouseButtonInfo buttonInfo, int action) {
         mouseSnapshot = null;
+        beginHighValueMouseClick(window, buttonInfo, action);
         if (!isBlocking()) {
             return false;
         }
@@ -144,6 +184,28 @@ public final class InputLockCoordinator {
             mouseSnapshot = snapshot(matched, action != GLFW.GLFW_RELEASE);
         }
         return decision == InputLockPolicy.Decision.BLOCK;
+    }
+
+    private void beginHighValueMouseClick(long window, MouseButtonInfo buttonInfo, int action) {
+        boolean validWindow = window == minecraft.getWindow().handle();
+        MouseButtonEvent event = new MouseButtonEvent(0.0, 0.0, buttonInfo);
+        boolean matches = validWindow && highValueToggleKey.matchesMouse(event);
+        InputLockPolicy.Phase eventPhase = phase(action);
+        boolean repeatedPress = matches
+                && eventPhase == InputLockPolicy.Phase.PRESS
+                && highValueMouseButtonDown == buttonInfo.button();
+        InputLockPolicy.Phase hotkeyPhase = InputLockPolicy.normalizeMouseHotkeyPhase(
+                eventPhase,
+                matches,
+                repeatedPress
+        );
+        if (validWindow && eventPhase == InputLockPolicy.Phase.RELEASE
+                && highValueMouseButtonDown == buttonInfo.button()) {
+            highValueMouseButtonDown = -1;
+        } else if (matches && eventPhase == InputLockPolicy.Phase.PRESS && !repeatedPress) {
+            highValueMouseButtonDown = buttonInfo.button();
+        }
+        beginHighValueClick(matches, hotkeyPhase);
     }
 
     private boolean isBlocking() {
@@ -318,6 +380,7 @@ public final class InputLockCoordinator {
         }
         blockedMappings = createBlockedMappings(minecraft);
         allowedMappings = List.of(
+                highValueToggleKey,
                 toggleKey,
                 configKey,
                 minecraft.options.keyChat,
@@ -355,6 +418,13 @@ public final class InputLockCoordinator {
             List<KeyMapping> mappings,
             boolean[] previousDown,
             boolean drainAfterward
+    ) {
+    }
+
+    private record HotkeyClickSnapshot(
+            boolean matches,
+            InputLockPolicy.Phase phase,
+            int clickCount
     ) {
     }
 }

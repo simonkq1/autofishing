@@ -63,6 +63,11 @@ public final class ConfigManager {
         }
     }
 
+    public void setHighValueEnabled(boolean enabled) {
+        config.highValueEnabled = enabled;
+        save();
+    }
+
     public static AutoFishConfig parse(String json) {
         try {
             AutoFishConfig parsed = GSON.fromJson(json, AutoFishConfig.class);

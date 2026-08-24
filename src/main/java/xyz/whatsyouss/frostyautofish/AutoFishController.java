@@ -131,17 +131,22 @@ public final class AutoFishController {
         if (!isEnabled()) {
             BackgroundRunState.setActive(false);
             inputLock.setActive(false);
-            highValueTracker.clear();
+            tickHighValueTracker(false);
+            renderHighValueGizmos();
             return;
         }
         syncInputLock();
         BackgroundRunState.setActive(config.backgroundRun);
         if (minecraft.player == null || minecraft.level == null || minecraft.gameMode == null) {
             disable(false, null);
+            tickHighValueTracker(false);
+            renderHighValueGizmos();
             return;
         }
         if (minecraft.level != activeLevel || !minecraft.player.isAlive()) {
             disable(false, "Disabled after world/player change");
+            tickHighValueTracker(false);
+            renderHighValueGizmos();
             return;
         }
 
@@ -153,28 +158,8 @@ public final class AutoFishController {
             abilityCooldown--;
         }
 
-        boolean screenOrOverlayOpen = minecraft.screen != null || minecraft.getOverlay() != null;
-        boolean allowHighValueAttack = !screenOrOverlayOpen
-                && isRodStillAvailable()
-                && isRodSelectedForFishing()
-                && attackCooldown == 0;
-        boolean highValueCaptureAreaActive = HighValueTargetPolicy.shouldApplyOwnCaptureArea(
-                state == AutoFishState.COLLECTING,
-                gameTick(),
-                reelScanUntil
-        );
-        if (highValueTracker.tick(
-                true,
-                isCombatState(),
-                allowHighValueAttack,
-                ordinaryTargetIds(),
-                approvedPlayerTargetIds,
-                highValueCaptureAreaActive ? reelHookAnchor : null,
-                highValueCaptureAreaActive ? reelPlayerAnchor : null,
-                SEA_CREATURE_KEEP_RANGE
-        )) {
-            attackCooldown = 5;
-        }
+        tickHighValueTracker(true);
+        renderHighValueGizmos();
 
         if (minecraft.screen != null) {
             restoreAntiAfkOffset();
@@ -222,7 +207,7 @@ public final class AutoFishController {
     }
 
     public HighValueTargetSnapshot highValueHudSnapshot() {
-        return isEnabled() ? highValueTracker.bestSnapshot() : null;
+        return highValueTracker.bestSnapshot();
     }
 
     public void onEntityLoad(Entity entity, ClientLevel level) {
@@ -262,7 +247,6 @@ public final class AutoFishController {
         startYaw = minecraft.player.getYRot();
         startPitch = minecraft.player.getXRot();
         clearTargets();
-        highValueTracker.clear();
         currentTarget = null;
         currentPath.clear();
         reelSnapshot.clear();
@@ -300,7 +284,6 @@ public final class AutoFishController {
         inputLock.setActive(false);
         BackgroundRunState.setActive(false);
         clearTargets();
-        highValueTracker.clear();
         currentTarget = null;
         currentPath.clear();
         reelSnapshot.clear();
@@ -1006,12 +989,11 @@ public final class AutoFishController {
 
     private void renderDebugGizmos() {
         if (minecraft.levelRenderer == null
-                || (currentTarget == null && currentPath.isEmpty() && !highValueTracker.hasCollisionTargets())) {
+                || (currentTarget == null && currentPath.isEmpty())) {
             return;
         }
 
         try (Gizmos.TemporaryCollection ignored = minecraft.levelRenderer.collectPerFrameGizmos()) {
-            highValueTracker.renderGizmos();
             if (validTarget(currentTarget)) {
                 Gizmos.cuboid(
                         currentTarget.getBoundingBox(),
@@ -1035,6 +1017,43 @@ public final class AutoFishController {
                     ).persistForMillis(80);
                 }
             }
+        }
+    }
+
+    private void tickHighValueTracker(boolean autoFishEnabled) {
+        boolean captureAreaActive = autoFishEnabled
+                && HighValueTargetPolicy.shouldApplyOwnCaptureArea(
+                state == AutoFishState.COLLECTING,
+                gameTick(),
+                reelScanUntil
+        );
+        boolean screenOrOverlayOpen = minecraft.screen != null || minecraft.getOverlay() != null;
+        boolean allowAutoAttack = autoFishEnabled
+                && minecraft.gameMode != null
+                && !screenOrOverlayOpen
+                && isRodStillAvailable()
+                && isRodSelectedForFishing()
+                && attackCooldown == 0;
+        if (highValueTracker.tick(
+                autoFishEnabled,
+                isCombatState(),
+                allowAutoAttack,
+                autoFishEnabled ? ordinaryTargetIds() : Set.of(),
+                autoFishEnabled ? approvedPlayerTargetIds : Set.of(),
+                captureAreaActive ? reelHookAnchor : null,
+                captureAreaActive ? reelPlayerAnchor : null,
+                SEA_CREATURE_KEEP_RANGE
+        )) {
+            attackCooldown = 5;
+        }
+    }
+
+    private void renderHighValueGizmos() {
+        if (minecraft.levelRenderer == null || !highValueTracker.hasCollisionTargets()) {
+            return;
+        }
+        try (Gizmos.TemporaryCollection ignored = minecraft.levelRenderer.collectPerFrameGizmos()) {
+            highValueTracker.renderGizmos();
         }
     }
 

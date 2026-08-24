@@ -8,4 +8,10 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface KeyMappingAccessor {
     @Accessor("isDown")
     void frostyAutoFish$setDownExactly(boolean value);
+
+    @Accessor("clickCount")
+    int frostyAutoFish$getClickCount();
+
+    @Accessor("clickCount")
+    void frostyAutoFish$setClickCount(int value);
 }
