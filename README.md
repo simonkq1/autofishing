@@ -10,7 +10,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Fabric API 0.152.1+26.1.2 或更高的 26.1.2 兼容版本
 - Java 25
 
-将 `FrostyAutoFish-1.6+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
+将 `FrostyAutoFish-1.6.1+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
 `mods` 目录即可。此 Mod 只能安装在客户端。
 
 ## 操作
@@ -116,7 +116,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 .\gradlew.bat build
 ```
 
-产物位于 `build\libs\FrostyAutoFish-1.6+26.1.2.jar`。
+产物位于 `build\libs\FrostyAutoFish-1.6.1+26.1.2.jar`。
 
 本目录是 26.1.2 专用兼容变体；请勿将其安装到 26.2 客户端。原始分析文档描述的
 Frosty 源码基线仍是 26.2，独立 Mod 的业务逻辑保持一致，仅适配游戏和 Fabric API 版本。
