@@ -20,6 +20,7 @@ public final class AutoFishConfigSelfTest {
         highValueTargetsAreNormalizedAndMatched();
         targetListEditorEditsNames();
         highValueSettingsSurviveCopyAndRoundTrip();
+        languageDefaultsAndSurvivesCopyAndRoundTrip();
     }
 
     private static void legacyAndUnknownFieldsAreIgnored() {
@@ -36,10 +37,12 @@ public final class AutoFishConfigSelfTest {
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "new enum keeps default");
         check(!config.lockControls, "legacy config keeps lock controls disabled");
         check(config.highValueEnabled, "legacy config keeps high value enabled");
+        check(config.language == AutoFishConfig.Language.ENGLISH, "legacy config keeps English language");
     }
 
     private static void defaultsAreStable() {
         AutoFishConfig config = ConfigManager.parse("{}");
+        check(config.language == AutoFishConfig.Language.ENGLISH, "language default");
         check(config.autoThrow, "autoThrow default");
         check(config.antiAfk, "antiAfk default");
         check(config.backgroundRun, "backgroundRun default");
@@ -107,6 +110,7 @@ public final class AutoFishConfigSelfTest {
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "malformed JSON biteDetection");
         check(!config.lockControls, "malformed JSON lockControls default");
         check(config.highValueEnabled, "malformed JSON highValueEnabled default");
+        check(config.language == AutoFishConfig.Language.ENGLISH, "malformed JSON language default");
     }
 
     private static void copyAndCopyFromKeepLockControls() {
@@ -243,6 +247,26 @@ public final class AutoFishConfigSelfTest {
         check(!reloaded.showHighValueHud, "serialized high value HUD reloads false");
         check(reloaded.autoAttackHighValue, "serialized high value auto attack reloads true");
         check(reloaded.highValueAttackCount == 7, "serialized high value attack count reloads");
+    }
+
+    private static void languageDefaultsAndSurvivesCopyAndRoundTrip() {
+        AutoFishConfig parsed = ConfigManager.parse("{\"language\":\"TRADITIONAL_CHINESE\"}");
+        check(parsed.language == AutoFishConfig.Language.TRADITIONAL_CHINESE,
+                "Traditional Chinese language parsed");
+        check(parsed.copy().language == AutoFishConfig.Language.TRADITIONAL_CHINESE,
+                "copy keeps language");
+
+        AutoFishConfig copiedInto = new AutoFishConfig();
+        copiedInto.copyFrom(parsed);
+        check(copiedInto.language == AutoFishConfig.Language.TRADITIONAL_CHINESE,
+                "copyFrom keeps language");
+
+        AutoFishConfig reloaded = ConfigManager.parse(ConfigManager.serialize(parsed));
+        check(reloaded.language == AutoFishConfig.Language.TRADITIONAL_CHINESE,
+                "serialized language reloads");
+
+        AutoFishConfig invalid = ConfigManager.parse("{\"language\":\"UNKNOWN\"}");
+        check(invalid.language == AutoFishConfig.Language.ENGLISH, "unknown language falls back to English");
     }
 
     private static void check(boolean condition, String name) {

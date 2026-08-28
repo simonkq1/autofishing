@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+import xyz.whatsyouss.frostyautofish.SettingsTranslations.Key;
 import xyz.whatsyouss.frostyautofish.config.ConfigManager;
 import xyz.whatsyouss.frostyautofish.config.TargetListEditor;
 import xyz.whatsyouss.frostyautofish.config.TargetNameMatcher;
@@ -40,11 +41,11 @@ public final class TargetManagementScreen extends Screen {
     }
 
     public TargetManagementScreen(ConfigScreen parent, ConfigManager configManager, TargetListKind kind) {
-        super(Component.literal(kind.title));
+        super(parent.component(kind.title));
         this.parent = parent;
         this.configManager = configManager;
         this.kind = kind;
-        statusMessage = Component.literal(kind.description);
+        statusMessage = parent.component(kind.description);
     }
 
     @Override
@@ -53,12 +54,12 @@ public final class TargetManagementScreen extends Screen {
 
         int inputY = 54;
         int inputX = width / 2 - (INPUT_WIDTH + ADD_WIDTH + FOOTER_GAP) / 2;
-        nameInput = new EditBox(font, inputX, inputY, INPUT_WIDTH, BUTTON_HEIGHT, Component.literal("Target Name"));
+        nameInput = new EditBox(font, inputX, inputY, INPUT_WIDTH, BUTTON_HEIGHT, text(Key.TARGET_INPUT));
         nameInput.setMaxLength(TargetNameMatcher.MAX_RULE_LENGTH);
         nameInput.setValue(pendingName);
         nameInput.setResponder(value -> pendingName = value);
         addRenderableWidget(nameInput);
-        addRenderableWidget(new Button.Builder(Component.literal("Add"), button -> addTarget())
+        addRenderableWidget(new Button.Builder(text(Key.ADD), button -> addTarget())
                 .bounds(inputX + INPUT_WIDTH + FOOTER_GAP, inputY, ADD_WIDTH, BUTTON_HEIGHT)
                 .build());
 
@@ -74,12 +75,12 @@ public final class TargetManagementScreen extends Screen {
 
         List<String> targets = targets();
         if (targets.isEmpty()) {
-            graphics.centeredText(font, Component.literal("No " + kind.itemPlural), width / 2, firstRowY() + 6,
+            graphics.centeredText(font, text(kind.emptyMessage), width / 2, firstRowY() + 6,
                     0xFFAAAAAA);
         } else {
             int start = page * rowsPerPage();
             int rows = Math.min(rowsPerPage(), targets.size() - start);
-            int textX = width / 2 - ROW_WIDTH / 2;
+            int textX = width / 2 - rowWidth() / 2;
             for (int row = 0; row < rows; row++) {
                 int targetIndex = start + row;
                 graphics.text(font, Component.literal(rowLabel(targetIndex)), textX, rowY(row) + 6, 0xFFFFFFFF);
@@ -88,7 +89,7 @@ public final class TargetManagementScreen extends Screen {
 
         graphics.centeredText(
                 font,
-                Component.literal("Page " + (page + 1) + " / " + (maxPage() + 1)),
+                text(Key.PAGE_NUMBER, page + 1, maxPage() + 1),
                 width / 2,
                 footerY() - 14,
                 0xFFAAAAAA
@@ -109,7 +110,12 @@ public final class TargetManagementScreen extends Screen {
 
     @Override
     public void onClose() {
+        parent.setOwnedChildScreen(null);
         minecraft.setScreen(parent);
+    }
+
+    ConfigScreen parentScreen() {
+        return parent;
     }
 
     @Override
@@ -121,10 +127,11 @@ public final class TargetManagementScreen extends Screen {
         List<String> targets = targets();
         int start = page * rowsPerPage();
         int rows = Math.min(rowsPerPage(), targets.size() - start);
-        int removeX = width / 2 + ROW_WIDTH / 2 - REMOVE_WIDTH;
+        int removeX = width / 2 + rowWidth() / 2 - REMOVE_WIDTH;
         for (int row = 0; row < rows; row++) {
             String target = targets.get(start + row);
-            addRenderableWidget(new Button.Builder(Component.literal("X"), button -> removeTarget(target))
+            addRenderableWidget(new Button.Builder(Component.literal("×"), button -> removeTarget(target))
+                    .createNarration(ignored -> Component.literal(text(Key.REMOVE).getString() + ": " + target))
                     .bounds(removeX, rowY(row), REMOVE_WIDTH, BUTTON_HEIGHT)
                     .build());
         }
@@ -132,30 +139,31 @@ public final class TargetManagementScreen extends Screen {
 
     private void addFooterButtons() {
         int footerY = footerY();
-        int firstX = width / 2 - FOOTER_WIDTH * 2 - FOOTER_GAP * 3 / 2;
+        int footerWidth = footerButtonWidth();
+        int firstX = width / 2 - footerWidth * 2 - FOOTER_GAP * 3 / 2;
 
-        Button previous = new Button.Builder(Component.literal("Previous"), button -> {
+        Button previous = new Button.Builder(text(Key.PREVIOUS), button -> {
             page--;
             rebuildWidgets();
-        }).bounds(firstX, footerY, FOOTER_WIDTH, BUTTON_HEIGHT).build();
+        }).bounds(firstX, footerY, footerWidth, BUTTON_HEIGHT).build();
         previous.active = page > 0;
         addRenderableWidget(previous);
 
-        Button next = new Button.Builder(Component.literal("Next"), button -> {
+        Button next = new Button.Builder(text(Key.NEXT), button -> {
             page++;
             rebuildWidgets();
-        }).bounds(firstX + FOOTER_WIDTH + FOOTER_GAP, footerY, FOOTER_WIDTH, BUTTON_HEIGHT).build();
+        }).bounds(firstX + footerWidth + FOOTER_GAP, footerY, footerWidth, BUTTON_HEIGHT).build();
         next.active = page < maxPage();
         addRenderableWidget(next);
 
-        Button clearAll = new Button.Builder(Component.literal("Clear All"), button -> confirmClear())
-                .bounds(firstX + (FOOTER_WIDTH + FOOTER_GAP) * 2, footerY, FOOTER_WIDTH, BUTTON_HEIGHT)
+        Button clearAll = new Button.Builder(text(Key.CLEAR_ALL), button -> confirmClear())
+                .bounds(firstX + (footerWidth + FOOTER_GAP) * 2, footerY, footerWidth, BUTTON_HEIGHT)
                 .build();
         clearAll.active = !targets().isEmpty();
         addRenderableWidget(clearAll);
 
-        addRenderableWidget(new Button.Builder(Component.literal("Back"), button -> onClose())
-                .bounds(firstX + (FOOTER_WIDTH + FOOTER_GAP) * 3, footerY, FOOTER_WIDTH, BUTTON_HEIGHT)
+        addRenderableWidget(new Button.Builder(text(Key.BACK), button -> onClose())
+                .bounds(firstX + (footerWidth + FOOTER_GAP) * 3, footerY, footerWidth, BUTTON_HEIGHT)
                 .build());
     }
 
@@ -167,7 +175,7 @@ public final class TargetManagementScreen extends Screen {
         }
 
         pendingName = "";
-        saveAndSync("Added " + kind.itemSingular + ": " + result.normalizedName());
+        saveAndSync(text(kind.addedMessage, result.normalizedName()));
     }
 
     private void removeTarget(String target) {
@@ -177,58 +185,61 @@ public final class TargetManagementScreen extends Screen {
             return;
         }
 
-        saveAndSync("Removed " + kind.itemSingular + ": " + result.normalizedName());
+        saveAndSync(text(kind.removedMessage, result.normalizedName()));
     }
 
     private void confirmClear() {
         BooleanConsumer callback = confirmed -> {
+            parent.setOwnedChildScreen(this);
             minecraft.setScreen(this);
             if (confirmed) {
                 clearTargets();
             }
         };
-        minecraft.setScreen(new ConfirmScreen(
+        ConfirmScreen confirm = new ConfirmScreen(
                 callback,
-                Component.literal("Clear All " + kind.confirmTitle + "?"),
-                Component.literal("Remove every " + kind.itemSingular + " from the list?"),
-                Component.literal("Clear All"),
-                Component.literal("Cancel")
-        ));
+                text(kind.confirmTitle),
+                text(kind.confirmBody),
+                text(Key.CLEAR_ALL),
+                text(Key.CANCEL)
+        );
+        parent.setOwnedChildScreen(confirm);
+        minecraft.setScreen(confirm);
     }
 
     private void clearTargets() {
         TargetListEditor.Result result = TargetListEditor.clear(targets());
-        saveAndSync("Cleared " + result.count() + " " + kind.itemSingular + "(s)");
+        saveAndSync(text(kind.clearedMessage, result.count()));
     }
 
     private String rowLabel(int targetIndex) {
         String prefix = (targetIndex + 1) + ". ";
         String target = targets().get(targetIndex);
-        int availableWidth = ROW_WIDTH - REMOVE_WIDTH - FOOTER_GAP - font.width(prefix);
+        int availableWidth = rowWidth() - REMOVE_WIDTH - FOOTER_GAP - font.width(prefix);
         if (font.width(target) <= availableWidth) {
             return prefix + target;
         }
         return prefix + font.plainSubstrByWidth(target, availableWidth - font.width("...")) + "...";
     }
 
-    private void saveAndSync(String message) {
+    private void saveAndSync(Component message) {
         configManager.save();
         kind.sync(parent);
-        statusMessage = Component.literal(message);
+        statusMessage = message;
         statusColor = 0xFF55FF55;
         page = Math.min(page, maxPage());
         rebuildWidgets();
     }
 
     private void setFailureStatus(TargetListEditor.Result result) {
-        String message = switch (result.status()) {
-            case EMPTY_NAME -> "Enter a target name.";
-            case NAME_TOO_LONG -> "Name must contain 1-" + TargetNameMatcher.MAX_RULE_LENGTH + " characters.";
-            case DUPLICATE -> "Target already exists: " + result.normalizedName();
-            case NOT_FOUND -> "Target not found: " + result.normalizedName();
-            default -> "Could not update target list.";
+        Component message = switch (result.status()) {
+            case EMPTY_NAME -> text(Key.ERROR_EMPTY);
+            case NAME_TOO_LONG -> text(Key.ERROR_TOO_LONG, TargetNameMatcher.MAX_RULE_LENGTH);
+            case DUPLICATE -> text(Key.ERROR_DUPLICATE, result.normalizedName());
+            case NOT_FOUND -> text(Key.ERROR_NOT_FOUND, result.normalizedName());
+            default -> text(Key.ERROR_UPDATE);
         };
-        statusMessage = Component.literal(message);
+        statusMessage = message;
         statusColor = 0xFFFF5555;
     }
 
@@ -257,13 +268,28 @@ public final class TargetManagementScreen extends Screen {
         return height - 34;
     }
 
+    private int rowWidth() {
+        return Math.min(ROW_WIDTH, Math.max(1, width - 16));
+    }
+
+    private int footerButtonWidth() {
+        return Math.min(FOOTER_WIDTH, Math.max(1, (width - 16 - FOOTER_GAP * 3) / 4));
+    }
+
+    private Component text(Key key, Object... arguments) {
+        return parent.component(key, arguments);
+    }
+
     public enum TargetListKind {
         PLAYER_MODEL(
-                "Player-Model Targets",
-                "Add player-model target names used by Auto Kill.",
-                "player-model target",
-                "player-model targets",
-                "Targets",
+                Key.PLAYER_TARGETS_TITLE,
+                Key.PLAYER_TARGETS_DESCRIPTION,
+                Key.NO_PLAYER_TARGETS,
+                Key.ADDED_PLAYER_TARGET,
+                Key.REMOVED_PLAYER_TARGET,
+                Key.CLEARED_PLAYER_TARGETS,
+                Key.CONFIRM_PLAYER_TITLE,
+                Key.CONFIRM_PLAYER_BODY,
                 configManager -> configManager.config().namedPlayerTargets
         ) {
             @Override
@@ -272,11 +298,14 @@ public final class TargetManagementScreen extends Screen {
             }
         },
         HIGH_VALUE(
-                "High Value Targets",
-                "Add external high-value player-model names to track.",
-                "high-value target",
-                "high-value targets",
-                "High Value Targets",
+                Key.HIGH_VALUE_TARGETS_TITLE,
+                Key.HIGH_VALUE_TARGETS_MANAGE_DESCRIPTION,
+                Key.NO_HIGH_VALUE_TARGETS,
+                Key.ADDED_HIGH_VALUE_TARGET,
+                Key.REMOVED_HIGH_VALUE_TARGET,
+                Key.CLEARED_HIGH_VALUE_TARGETS,
+                Key.CONFIRM_HIGH_VALUE_TITLE,
+                Key.CONFIRM_HIGH_VALUE_BODY,
                 configManager -> configManager.config().highValueTargets
         ) {
             @Override
@@ -285,26 +314,35 @@ public final class TargetManagementScreen extends Screen {
             }
         };
 
-        private final String title;
-        private final String description;
-        private final String itemSingular;
-        private final String itemPlural;
-        private final String confirmTitle;
+        private final Key title;
+        private final Key description;
+        private final Key emptyMessage;
+        private final Key addedMessage;
+        private final Key removedMessage;
+        private final Key clearedMessage;
+        private final Key confirmTitle;
+        private final Key confirmBody;
         private final Function<ConfigManager, List<String>> targets;
 
         TargetListKind(
-                String title,
-                String description,
-                String itemSingular,
-                String itemPlural,
-                String confirmTitle,
+                Key title,
+                Key description,
+                Key emptyMessage,
+                Key addedMessage,
+                Key removedMessage,
+                Key clearedMessage,
+                Key confirmTitle,
+                Key confirmBody,
                 Function<ConfigManager, List<String>> targets
         ) {
             this.title = title;
             this.description = description;
-            this.itemSingular = itemSingular;
-            this.itemPlural = itemPlural;
+            this.emptyMessage = emptyMessage;
+            this.addedMessage = addedMessage;
+            this.removedMessage = removedMessage;
+            this.clearedMessage = clearedMessage;
             this.confirmTitle = confirmTitle;
+            this.confirmBody = confirmBody;
             this.targets = targets;
         }
 

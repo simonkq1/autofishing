@@ -11,6 +11,7 @@ public final class AutoFishSelfTest {
         AutoFishStateSelfTest.run();
         InputLockSelfTest.run();
         HighValueTargetPolicySelfTest.run();
+        SettingsUiSelfTest.run();
         BackgroundRunState.setActive(false);
         if (BackgroundRunState.isActive()) {
             throw new AssertionError("background run should start inactive");

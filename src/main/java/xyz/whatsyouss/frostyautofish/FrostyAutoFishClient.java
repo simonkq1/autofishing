@@ -81,7 +81,9 @@ public final class FrostyAutoFishClient implements ClientModInitializer {
             controller.toggle();
         }
         while (configKey.consumeClick()) {
-            if (!(minecraft.screen instanceof ConfigScreen)) {
+            if (configScreen != null && configScreen.ownsScreen(minecraft.screen)) {
+                minecraft.setScreen(configScreen);
+            } else if (!(minecraft.screen instanceof ConfigScreen)) {
                 controller.disableForConfigScreen();
                 configScreen = new ConfigScreen(
                         minecraft.screen,

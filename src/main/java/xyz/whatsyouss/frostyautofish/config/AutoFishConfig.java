@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 public final class AutoFishConfig {
+    public Language language = Language.ENGLISH;
     public boolean autoThrow = true;
     public boolean antiAfk = true;
     public boolean backgroundRun = true;
@@ -29,6 +30,7 @@ public final class AutoFishConfig {
     public int highValueAttackCount = 1;
 
     public void normalize() {
+        language = Objects.requireNonNullElse(language, Language.ENGLISH);
         maxWaitSeconds = clamp(maxWaitSeconds, 5, 60);
         dryTimeoutSeconds = clamp(dryTimeoutSeconds, 5, 60);
         triggerAmount = clamp(triggerAmount, 1, 15);
@@ -43,6 +45,7 @@ public final class AutoFishConfig {
 
     public AutoFishConfig copy() {
         AutoFishConfig copy = new AutoFishConfig();
+        copy.language = language;
         copy.autoThrow = autoThrow;
         copy.antiAfk = antiAfk;
         copy.backgroundRun = backgroundRun;
@@ -67,6 +70,7 @@ public final class AutoFishConfig {
     }
 
     public void copyFrom(AutoFishConfig other) {
+        language = other.language;
         autoThrow = other.autoThrow;
         antiAfk = other.antiAfk;
         backgroundRun = other.backgroundRun;
@@ -121,6 +125,11 @@ public final class AutoFishConfig {
         public String label() {
             return label;
         }
+    }
+
+    public enum Language {
+        ENGLISH,
+        TRADITIONAL_CHINESE
     }
 
     public enum BiteDetection {

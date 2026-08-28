@@ -10,7 +10,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Fabric API 0.152.1+26.1.2 或更高的 26.1.2 兼容版本
 - Java 25
 
-将 `FrostyAutoFish-1.6.1+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
+将 `FrostyAutoFish-1.7.0+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
 `mods` 目录即可。此 Mod 只能安装在客户端。
 
 ## 操作
@@ -29,6 +29,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 
 | 设置 | 默认值 | 说明 |
 | --- | --- | --- |
+| Language | English | 設定介面語言，可選 `English` 或 `中文`；選擇會保存至 JSON |
 | Auto Throw | 开 | 自动抛竿和重新抛竿 |
 | Anti AFK | 开 | 每 10–20 秒轻微转动视角并恢复 |
 | Background Run | 开 | AutoFish 启用时切换到其他窗口不触发失焦暂停 |
@@ -46,6 +47,13 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 | High Value HUD | 開 | 進入世界後在 HUD 常駐顯示最近的外部高價值目標、距離和攻擊進度 |
 | High Value Attack | 關 | 僅在 AutoFish 啟用時對外部高價值目標原地瞄準並自動攻擊 |
 | High Value Hits | 1 | 每個外部高價值目標最多自動攻擊次數，範圍 1–10 |
+
+`F9` 設定畫面左側為 navigation bar，最上方的 `General` 分頁包含 `Language`；`Fishing`
+分頁依序分成 `Fishing`、`Control & Safety`、`Auto Kill` 與 `High Value` 四組。右側設定以名稱、
+說明與控制元件逐項排列並可捲動；窄畫面會將控制元件移到說明下方，避免橫向擠壓。
+
+語言選項會翻譯設定根畫面、兩個 Target 管理畫面及其清空確認畫面。現有 runtime HUD、聊天與
+狀態提示、指令文字，以及 Minecraft「控制」中的 keybind 名稱不受此選項影響。
 
 近战模式会追击目标、显示路径并在完成后回到启用位置；技能模式会恢复使用技能前的视角。
 自动进入战斗时允许 Mod 临时切换到 Weapon Slot，不会被判定为玩家主动切走鱼竿；
@@ -67,7 +75,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   - `/frostyautofish target remove <名称>`
   - `/frostyautofish target list`
   - `/frostyautofish target clear`
-  也可以在 `F9` 配置页面中通过 `Targets` 管理此名单。
+  也可以在 `F9` 設定畫面的 `Fishing` > `Auto Kill` 群組中，透過 `Targets` 的 `Manage…` 入口管理此名單。
   名称匹配忽略大小写、颜色代码和多余空格，并允许等级、血量等前后缀。只有收竿后新出现且
   位于本地鱼钩/玩家捕获范围内的匹配玩家实体会被攻击。
 - 外部高價值 player-model 目標使用獨立名單，不會和普通 Auto Kill target 名單混在一起：
@@ -75,7 +83,8 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   - `/frostyautofish highvalue remove <名稱>`
   - `/frostyautofish highvalue list`
   - `/frostyautofish highvalue clear`
-  也可以在 `F9` 配置頁面中透過 `High Value` 管理此名單。玩家進入世界後即會持續掃描匹配此名單，
+  也可以在 `F9` 設定畫面的 `Fishing` > `High Value` 群組中，透過 `High Value Targets` 的 `Manage…`
+  入口管理此名單。玩家進入世界後即會持續掃描匹配此名單，
   且不是本輪自己收竿捕獲區或普通 Auto Kill 目標的玩家模型；不需要啟用 AutoFish，按 `F8` 停止後
   碰撞格和 HUD 文字也會繼續顯示。Screen 或 overlay 開啟期間只會暫停顯示，背景追蹤仍會更新，
   關閉介面後自動恢復。碰撞格、HUD 文字和自動攻擊可分別開關。
@@ -107,6 +116,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   避免合成意外点击。此功能不会阻止其他 Mod 直接调用 `gameMode`、修改 yaw 或设置物品栏槽位。
 - 自动化功能可能违反某些服务器规则。使用前请确认目标服务器的规定，风险由使用者承担。
 - 不要同时启用 Frosty 原版 AutoFish 和本 Mod，否则两个控制器会互相竞争。
+- 1.7.0 設定介面尚未於 Minecraft 26.1.2 完成實機驗證。
 
 ## 构建
 
@@ -116,7 +126,8 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 .\gradlew.bat build
 ```
 
-产物位于 `build\libs\FrostyAutoFish-1.6.1+26.1.2.jar`。
+产物位于 `build\libs\FrostyAutoFish-1.7.0+26.1.2.jar`；對應原始碼封裝為
+`build\libs\FrostyAutoFish-1.7.0+26.1.2-sources.jar`。
 
 本目录是 26.1.2 专用兼容变体；请勿将其安装到 26.2 客户端。原始分析文档描述的
 Frosty 源码基线仍是 26.2，独立 Mod 的业务逻辑保持一致，仅适配游戏和 Fabric API 版本。
