@@ -158,7 +158,7 @@ public final class AutoFishController {
             abilityCooldown--;
         }
 
-        tickHighValueTracker(true);
+        HighValueAttackResult highValueAttack = tickHighValueTracker(true);
         renderHighValueGizmos();
 
         if (minecraft.screen != null) {
@@ -176,6 +176,11 @@ public final class AutoFishController {
         }
         if (!isCombatState() && !isRodSelectedForFishing()) {
             disable(false, "Fishing rod deselected; disabled");
+            return;
+        }
+
+        if (highValueAttack.consumesFishingTick()) {
+            renderDebugGizmos();
             return;
         }
 
@@ -225,6 +230,7 @@ public final class AutoFishController {
     }
 
     private void enable() {
+        highValueTracker.cancelPendingAttack();
         if (minecraft.player == null || minecraft.level == null || minecraft.gameMode == null) {
             return;
         }
@@ -270,6 +276,7 @@ public final class AutoFishController {
     }
 
     private void disable(boolean retractHook, String reason) {
+        highValueTracker.cancelPendingAttack();
         if (!isEnabled()) {
             return;
         }
@@ -1020,7 +1027,7 @@ public final class AutoFishController {
         }
     }
 
-    private void tickHighValueTracker(boolean autoFishEnabled) {
+    private HighValueAttackResult tickHighValueTracker(boolean autoFishEnabled) {
         boolean captureAreaActive = autoFishEnabled
                 && HighValueTargetPolicy.shouldApplyOwnCaptureArea(
                 state == AutoFishState.COLLECTING,
@@ -1032,20 +1039,22 @@ public final class AutoFishController {
                 && minecraft.gameMode != null
                 && !screenOrOverlayOpen
                 && isRodStillAvailable()
-                && isRodSelectedForFishing()
-                && attackCooldown == 0;
-        if (highValueTracker.tick(
+                && isRodSelectedForFishing();
+        HighValueAttackResult result = highValueTracker.tick(
                 autoFishEnabled,
                 isCombatState(),
                 allowAutoAttack,
+                attackCooldown == 0,
                 autoFishEnabled ? ordinaryTargetIds() : Set.of(),
                 autoFishEnabled ? approvedPlayerTargetIds : Set.of(),
                 captureAreaActive ? reelHookAnchor : null,
                 captureAreaActive ? reelPlayerAnchor : null,
                 SEA_CREATURE_KEEP_RANGE
-        )) {
+        );
+        if (result.performedAttack()) {
             attackCooldown = 5;
         }
+        return result;
     }
 
     private void renderHighValueGizmos() {

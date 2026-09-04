@@ -28,6 +28,7 @@ public final class AutoFishConfig {
     public boolean showHighValueHud = true;
     public boolean autoAttackHighValue = false;
     public int highValueAttackCount = 1;
+    public boolean highValueRangedAttack = false;
 
     public void normalize() {
         language = Objects.requireNonNullElse(language, Language.ENGLISH);
@@ -66,6 +67,7 @@ public final class AutoFishConfig {
         copy.showHighValueHud = showHighValueHud;
         copy.autoAttackHighValue = autoAttackHighValue;
         copy.highValueAttackCount = highValueAttackCount;
+        copy.highValueRangedAttack = highValueRangedAttack;
         return copy;
     }
 
@@ -91,6 +93,7 @@ public final class AutoFishConfig {
         showHighValueHud = other.showHighValueHud;
         autoAttackHighValue = other.autoAttackHighValue;
         highValueAttackCount = other.highValueAttackCount;
+        highValueRangedAttack = other.highValueRangedAttack;
         normalize();
     }
 

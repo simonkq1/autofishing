@@ -12,6 +12,8 @@ final class HighValueTargetPolicySelfTest {
         trackingRejectsOwnCaptureAreaAndDistantTargets();
         captureAreaOnlyAppliesDuringCurrentCollectionWindow();
         autoAttackRequiresSafeStateAndAttackBudget();
+        highValueRaycastUsesSquaredReach();
+        attackCandidateRequiresEligibilityAndSkipsExhaustedNearest();
         trackingContextResetsAtWorldAndPlayerBoundaries();
         displayRequiresValidWorldAndNoGui();
         scanPlanSeparatesMasterAndCaptureBehavior();
@@ -111,6 +113,37 @@ final class HighValueTargetPolicySelfTest {
         check(HighValueTargetPolicy.clampAttackCount(99) == 10, "attack count clamps high");
     }
 
+    private static void highValueRaycastUsesSquaredReach() {
+        check(HighValueTargetPolicy.raycastMaxDistanceArgument(
+                3.5,
+                HighValueTargetPolicy.RaycastPath.HIGH_VALUE
+        ) == 12.25, "high value path uses squared 3.5 block raycast distance");
+        check(HighValueTargetPolicy.raycastMaxDistanceArgument(
+                3.5,
+                HighValueTargetPolicy.RaycastPath.ORDINARY_AUTO_KILL
+        ) == 3.5, "ordinary Auto Kill path preserves legacy linear max distance argument");
+    }
+
+    private static void attackCandidateRequiresEligibilityAndSkipsExhaustedNearest() {
+        TestAttackCandidate dead = new TestAttackCandidate("dead", false, false, 1.0, 0);
+        TestAttackCandidate removed = new TestAttackCandidate("removed", true, true, 1.1, 0);
+        TestAttackCandidate exhaustedNearest = new TestAttackCandidate("exhausted", true, false, 1.5, 1);
+        TestAttackCandidate fartherWithBudget = new TestAttackCandidate("eligible", true, false, 3.0, 0);
+        TestAttackCandidate outOfRange = new TestAttackCandidate("distant", true, false, 3.51, 0);
+
+        TestAttackCandidate selected = HighValueTargetPolicy.selectNearestAttackCandidate(
+                List.of(dead, removed, exhaustedNearest, fartherWithBudget, outOfRange),
+                3.5,
+                1
+        );
+        check(selected == fartherWithBudget,
+                "production selector skips ineligible nearest targets and selects next nearest with budget");
+
+        TestAttackCandidate boundary = new TestAttackCandidate("boundary", true, false, 3.5, 0);
+        check(HighValueTargetPolicy.selectNearestAttackCandidate(List.of(boundary), 3.5, 1) == boundary,
+                "living target at attack range boundary with budget is eligible");
+    }
+
     private static void trackingContextResetsAtWorldAndPlayerBoundaries() {
         check(!HighValueTargetPolicy.shouldResetTrackingContext(
                 true, true, true, true, true
@@ -184,6 +217,24 @@ final class HighValueTargetPolicySelfTest {
     private static void check(boolean condition, String name) {
         if (!condition) {
             throw new AssertionError("Failed check: " + name);
+        }
+    }
+
+    private record TestAttackCandidate(
+            String name,
+            boolean alive,
+            boolean removed,
+            double distance,
+            int attacksDone
+    ) implements HighValueTargetPolicy.AttackCandidateView {
+        @Override
+        public boolean isAlive() {
+            return alive;
+        }
+
+        @Override
+        public boolean isRemoved() {
+            return removed;
         }
     }
 }

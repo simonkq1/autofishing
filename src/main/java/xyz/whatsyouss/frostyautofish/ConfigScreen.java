@@ -241,6 +241,9 @@ public final class ConfigScreen extends Screen {
         page.addChild(settingRow(d, Key.HIGH_VALUE_ATTACK, Key.HIGH_VALUE_ATTACK_DESCRIPTION,
                 booleanControl("highValueAttack", Key.HIGH_VALUE_ATTACK, working.autoAttackHighValue,
                         value -> working.autoAttackHighValue = value, d.controlWidth())));
+        page.addChild(settingRow(d, Key.HIGH_VALUE_RANGED_ATTACK, Key.HIGH_VALUE_RANGED_ATTACK_DESCRIPTION,
+                booleanControl("highValueRangedAttack", Key.HIGH_VALUE_RANGED_ATTACK, working.highValueRangedAttack,
+                        value -> working.highValueRangedAttack = value, d.controlWidth())));
         page.addChild(settingRow(d, Key.HIGH_VALUE_HITS, Key.HIGH_VALUE_HITS_DESCRIPTION,
                 intSlider("highValueHits", Key.HIGH_VALUE_HITS, null, working.highValueAttackCount, 1, 10,
                         value -> working.highValueAttackCount = value, d.controlWidth())));

@@ -37,6 +37,7 @@ public final class AutoFishConfigSelfTest {
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "new enum keeps default");
         check(!config.lockControls, "legacy config keeps lock controls disabled");
         check(config.highValueEnabled, "legacy config keeps high value enabled");
+        check(!config.highValueRangedAttack, "legacy config keeps ranged attack disabled");
         check(config.language == AutoFishConfig.Language.ENGLISH, "legacy config keeps English language");
     }
 
@@ -62,6 +63,7 @@ public final class AutoFishConfigSelfTest {
         check(config.showHighValueCollision, "showHighValueCollision default");
         check(config.showHighValueHud, "showHighValueHud default");
         check(!config.autoAttackHighValue, "autoAttackHighValue default");
+        check(!config.highValueRangedAttack, "highValueRangedAttack default");
         check(config.highValueAttackCount == 1, "highValueAttackCount default");
     }
 
@@ -110,6 +112,7 @@ public final class AutoFishConfigSelfTest {
         check(config.biteDetection == AutoFishConfig.BiteDetection.BOTH, "malformed JSON biteDetection");
         check(!config.lockControls, "malformed JSON lockControls default");
         check(config.highValueEnabled, "malformed JSON highValueEnabled default");
+        check(!config.highValueRangedAttack, "malformed JSON ranged attack disabled");
         check(config.language == AutoFishConfig.Language.ENGLISH, "malformed JSON language default");
     }
 
@@ -223,6 +226,7 @@ public final class AutoFishConfigSelfTest {
         source.showHighValueCollision = false;
         source.showHighValueHud = false;
         source.autoAttackHighValue = true;
+        source.highValueRangedAttack = true;
         source.highValueAttackCount = 7;
 
         AutoFishConfig copy = source.copy();
@@ -232,12 +236,14 @@ public final class AutoFishConfigSelfTest {
         check(!copy.showHighValueCollision, "copy keeps high value collision false");
         check(!copy.showHighValueHud, "copy keeps high value HUD false");
         check(copy.autoAttackHighValue, "copy keeps high value auto attack true");
+        check(copy.highValueRangedAttack, "copy keeps ranged attack true");
         check(copy.highValueAttackCount == 7, "copy keeps high value attack count");
 
         AutoFishConfig copiedInto = new AutoFishConfig();
         copiedInto.copyFrom(source);
         check(!copiedInto.highValueEnabled, "copyFrom keeps high value master false");
         check(copiedInto.autoAttackHighValue, "copyFrom keeps high value auto attack true");
+        check(copiedInto.highValueRangedAttack, "copyFrom keeps ranged attack true");
         check(copiedInto.highValueAttackCount == 7, "copyFrom keeps high value attack count");
 
         AutoFishConfig reloaded = ConfigManager.parse(ConfigManager.serialize(source));
@@ -246,7 +252,10 @@ public final class AutoFishConfigSelfTest {
         check(!reloaded.showHighValueCollision, "serialized high value collision reloads false");
         check(!reloaded.showHighValueHud, "serialized high value HUD reloads false");
         check(reloaded.autoAttackHighValue, "serialized high value auto attack reloads true");
+        check(reloaded.highValueRangedAttack, "serialized ranged attack reloads true");
         check(reloaded.highValueAttackCount == 7, "serialized high value attack count reloads");
+        copiedInto.copyFrom(new AutoFishConfig());
+        check(!copiedInto.highValueRangedAttack, "copyFrom can turn ranged attack off");
     }
 
     private static void languageDefaultsAndSurvivesCopyAndRoundTrip() {

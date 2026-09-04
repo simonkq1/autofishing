@@ -10,7 +10,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 - Fabric API 0.152.1+26.1.2 或更高的 26.1.2 兼容版本
 - Java 25
 
-将 `FrostyAutoFish-1.7.0+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
+将 `FrostyAutoFish-1.7.1-alpha1+26.1.2.jar` 和对应版本的 Fabric API 放入客户端
 `mods` 目录即可。此 Mod 只能安装在客户端。
 
 ## 操作
@@ -38,15 +38,16 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 | Auto Kill | 开 | 累积并自动清理收竿后生成的海怪 |
 | Trigger Amount | 3 | 达到该目标数量后开始清理 |
 | Use Ability | 关 | 使用指定快捷栏物品的右键技能 |
-| Ability Delay | 150 ms | 首次技能延迟，范围 50–1000ms，每个目标随机浮动 ±10% |
+| Ability Delay | 150 ms | 範圍 50–1000 ms；普通 Auto Kill 首次技能延遲每目標浮動 ±10%，High Value 每次使用前等待此值、不加浮動 |
 | Ability Aim | Mob | 技能朝向目标或正下方 |
-| Weapon Slot | 1 | 自动击杀使用的快捷栏槽位 |
+| Weapon Slot | 1 | 普通 Auto Kill 與 High Value 遠距 Ability 共用的快捷欄槽位 |
 | Bite Detection | Hypixel + Vanilla | 使用 `!!!` 标记和原版浮漂 biting 状态 |
 | High Value Enabled | 開 | High Value 的總開關；關閉後停止目標匹配、顯示與自動攻擊 |
 | High Value Boxes | 開 | 進入世界後常駐顯示外部高價值 player-model 目標的碰撞格 |
 | High Value HUD | 開 | 進入世界後在 HUD 常駐顯示最近的外部高價值目標、距離和攻擊進度 |
 | High Value Attack | 關 | 僅在 AutoFish 啟用時對外部高價值目標原地瞄準並自動攻擊 |
-| High Value Hits | 1 | 每個外部高價值目標最多自動攻擊次數，範圍 1–10 |
+| High Value Ranged Attack | 關 | 改用最多 32 格的 Ability；必須同時開啟 Use Ability，不支援 Bow |
+| High Value Hits | 1 | 每個追蹤目標共用的近戰／Ability 嘗試次數上限，範圍 1–10；不代表確認命中 |
 
 `F9` 設定畫面左側為 navigation bar，最上方的 `General` 分頁包含 `Language`；`Fishing`
 分頁依序分成 `Fishing`、`Control & Safety`、`Auto Kill` 與 `High Value` 四組。右側設定以名稱、
@@ -55,7 +56,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 語言選項會翻譯設定根畫面、兩個 Target 管理畫面及其清空確認畫面。現有 runtime HUD、聊天與
 狀態提示、指令文字，以及 Minecraft「控制」中的 keybind 名稱不受此選項影響。
 
-近战模式会追击目标、显示路径并在完成后回到启用位置；技能模式会恢复使用技能前的视角。
+普通 Auto Kill 的近戰模式會追擊目標、顯示路徑並在完成後回到啟用位置；技能模式會恢復使用技能前的視角。
 自动进入战斗时允许 Mod 临时切换到 Weapon Slot，不会被判定为玩家主动切走鱼竿；
 清理完成后会自动切回原鱼竿槽位。主手鱼竿与 Weapon Slot 不能使用同一个槽位。
 
@@ -69,7 +70,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   恢复状态绑定本地玩家自己的浮漂实体 ID，不扫描或等待其他玩家的浮漂。
 - 自动杀怪在收竿前建立实体快照，并在 20 tick 内按“本地浮漂位置、收竿位置、玩家当前位置”
   三个安全范围收集新生物；玩家和收竿前已有的实体不会被加入目标。
-- 技能模式不再依赖准星命中方块，并会每 8 tick 重试一次，直到目标消失或达到超时上限。
+- 普通 Auto Kill 的技能模式不再依赖准星命中方块，并会每 8 tick 重试一次，直到目标消失或达到超时上限。
 - 对于使用玩家模型和皮肤的海怪，可通过客户端指令添加头顶名称关键词：
   - `/frostyautofish target add <名称>`
   - `/frostyautofish target remove <名称>`
@@ -93,15 +94,40 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   `High Value: ON/OFF` client status 提示。總開關關閉時會立即隱藏碰撞格和 HUD，停止完整名稱匹配及
   自動攻擊，但保留目前世界的攻擊次數與自己捕獲目標安全紀錄；重新開啟後會先刷新目標再恢復顯示。
   High Value 不會發送目標偵測聊天通知，僅 `F10` 切換總開關時顯示上述狀態提示。
-  即使開啟 High Value Attack，也只會在 AutoFish 已啟用、無 Screen/overlay、非 Auto Kill combat、
-  目標位於攻擊距離內且符合既有限制時，原地瞄準攻擊設定次數，不接管移動、不追擊、不切換武器。
-- 经名称白名单验证的玩家模型实体会在本轮目标生命周期内保留批准状态；技能未能在重试和
+- High Value 自動攻擊需要 AutoFish、High Value Enabled 與 High Value Attack 同時開啟，
+  且無 Screen/overlay、非 Auto Kill combat、魚竿仍可用並維持釣魚選取狀態、`gameMode` 存在。
+  它不接管移動、不追擊、不尋路；停止 AutoFish 後只追蹤與顯示，不執行攻擊。
+
+  - `High Value Ranged Attack` 關閉：維持 3.5 格近戰，不切換武器。
+    1.7.1-alpha1 修正 High Value 射線的距離平方參數，仍檢查方塊遮擋與精確目標命中；
+    普通近戰 Auto Kill 保留現有命中判定。
+  - 遠距開啟且 `Use Ability` 開啟：不論遠近都使用 Ability，絕不回退近戰。
+    候選限玩家周圍 32 格內，並要求玩家眼睛至目標碰撞箱中心無實體方塊遮擋。
+    共用 `Weapon Slot`、`Ability Aim` 與 `Ability Delay`；`Mob` 瞄準目標中心，
+    `Down` 也須先通過相同視線檢查，再朝正下方使用技能。實際能否影響遠處目標取決於所選物品的技能。
+  - 遠距開啟但 `Use Ability` 關閉：完全停止 High Value 自動攻擊，追蹤與顯示不受影響。
+
+  新設定預設關閉，舊 JSON 缺少 `highValueRangedAttack` 時亦維持關閉；英文與繁體中文設定介面均提供此選項。
+- High Value Ability 使用獨立等待狀態，每次使用前等待完整 `Ability Delay`，不加隨機浮動，
+  並同時滿足至少 5 tick 的共用攻擊冷卻；普通 Auto Kill 的首次延遲與重試時序不變。
+  等待期間正常釣魚、不切槽；實際使用當 tick 只送出一次主手右鍵，跳過一般拋收竿流程。
+  使用前保存實際選取槽位與視角，切至 Weapon Slot 並瞄準，之後透過清理區塊還原槽位、
+  本地視角並同步伺服器視角；副手持竿時也還原原本選取的主手槽位。
+  空槽、魚竿、Bow／Crossbow、物品本地冷卻中、玩家正在使用物品或旁觀者模式時，不使用技能也不增加次數。
+  目標失效、超出範圍、被遮擋、GUI／overlay 開啟、停止 Macro、關閉相關開關、變更武器槽／瞄準／延遲／
+  次數上限或世界／玩家失效，都會取消等待；恢復或換候選後重新等待完整延遲，不補發累積動作。
+- `High Value Hits` 是每個追蹤目標的嘗試次數，近戰與 Ability 共用；技能使用正常返回即計一次，
+  包括客戶端回傳 `PASS`，不代表伺服器確認命中或造成傷害。最近目標耗盡額度後改選下一個合格目標；
+  Ability 也跳過視線被遮擋的候選。每 tick 最多處理一個攻擊候選，HUD 仍顯示最近的存活追蹤目標。
+  切換模式或 `F8`／`F10` 不重置仍在追蹤的目標計數；死亡、移除、離開 32 格、名單不再匹配或世界／
+  玩家清理仍依既有追蹤生命週期移除紀錄，重新追蹤時重新計數。降低上限後停止超額目標，提高後可繼續。
+- 普通 Auto Kill 经名称白名单验证的玩家模型实体会在本轮目标生命周期内保留批准状态；技能未能在重试和
   超时上限内消灭目标时，Mod 会丢弃该目标，不会转入近战。
 - 每次抛竿后达到 Dry Timeout 仍没有咬钩时会直接收回自己的浮漂并重抛，不进入海怪收集；
   连续第二次超时会再次收竿、停用 Mod，并由玩家向服务器发送 `/is`。正常咬钩会清零连续计数。
-- 技能结束后的视角先平滑恢复，并在结束帧精确写回技能前保存的 yaw/pitch，消除鼠标灵敏度
+- 普通 Auto Kill 技能结束后的视角先平滑恢复，并在结束帧精确写回技能前保存的 yaw/pitch，消除鼠标灵敏度
   量化和 1° 完成阈值留下的轻微偏移。
-- 技能模式达到 Trigger Amount 后不再等待完整的 20 tick 收集窗口；切换武器后按 Ability Delay
+- 普通 Auto Kill 技能模式达到 Trigger Amount 后不再等待完整的 20 tick 收集窗口；切换武器后按 Ability Delay
   在主线程计时，并为每个新目标固定生成一次 ±10% 浮动，随后按实时位置精确瞄准并立即使用技能。
 - Background Run 只在 AutoFish 正在启用时取消 Minecraft 的失焦暂停；关闭 AutoFish 或关闭该设置后，
   游戏恢复原本的失焦行为。后台帧率仍由 Minecraft 自己的非活动窗口帧率设置决定。
@@ -116,7 +142,7 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
   避免合成意外点击。此功能不会阻止其他 Mod 直接调用 `gameMode`、修改 yaw 或设置物品栏槽位。
 - 自动化功能可能违反某些服务器规则。使用前请确认目标服务器的规定，风险由使用者承担。
 - 不要同时启用 Frosty 原版 AutoFish 和本 Mod，否则两个控制器会互相竞争。
-- 1.7.0 設定介面尚未於 Minecraft 26.1.2 完成實機驗證。
+- 1.7.0 設定介面與 1.7.1-alpha1 High Value Attack 修復及遠距 Ability 功能尚未於 Minecraft 26.1.2 完成實機驗證。
 
 ## 构建
 
@@ -126,8 +152,8 @@ Frosty AutoFish 是从 Frosty 客户端中独立重写的 Minecraft 26.1.2 Fabri
 .\gradlew.bat build
 ```
 
-产物位于 `build\libs\FrostyAutoFish-1.7.0+26.1.2.jar`；對應原始碼封裝為
-`build\libs\FrostyAutoFish-1.7.0+26.1.2-sources.jar`。
+产物位于 `build\libs\FrostyAutoFish-1.7.1-alpha1+26.1.2.jar`；對應原始碼封裝為
+`build\libs\FrostyAutoFish-1.7.1-alpha1+26.1.2-sources.jar`。
 
 本目录是 26.1.2 专用兼容变体；请勿将其安装到 26.2 客户端。原始分析文档描述的
 Frosty 源码基线仍是 26.2，独立 Mod 的业务逻辑保持一致，仅适配游戏和 Fabric API 版本。

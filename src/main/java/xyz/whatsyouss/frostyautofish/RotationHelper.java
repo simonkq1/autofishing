@@ -51,6 +51,20 @@ final class RotationHelper {
     }
 
     boolean canHit(Entity target, double reach) {
+        return canHit(target, reach, HighValueTargetPolicy.raycastMaxDistanceArgument(
+                reach,
+                HighValueTargetPolicy.RaycastPath.ORDINARY_AUTO_KILL
+        ));
+    }
+
+    boolean canHitHighValueTarget(Entity target, double reach) {
+        return canHit(target, reach, HighValueTargetPolicy.raycastMaxDistanceArgument(
+                reach,
+                HighValueTargetPolicy.RaycastPath.HIGH_VALUE
+        ));
+    }
+
+    private boolean canHit(Entity target, double reach, double maxDistanceSquared) {
         Vec3 eye = minecraft.player.getEyePosition();
         float yaw = minecraft.player.getYRot();
         float pitch = minecraft.player.getXRot();
@@ -77,7 +91,7 @@ final class RotationHelper {
                 end,
                 target.getBoundingBox().inflate(0.3),
                 entity -> entity == target,
-                reach
+                maxDistanceSquared
         );
         return entityHit != null && entityHit.getEntity() == target;
     }

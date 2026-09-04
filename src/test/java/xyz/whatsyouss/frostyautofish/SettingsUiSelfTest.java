@@ -59,6 +59,10 @@ final class SettingsUiSelfTest {
     }
 
     private static void translatedValuesAndStatesAreStable() {
+        check(SettingsTranslations.text(AutoFishConfig.Language.ENGLISH, Key.HIGH_VALUE_RANGED_ATTACK)
+                        .equals("High Value Ranged Attack"), "ranged attack English label");
+        check(SettingsTranslations.text(AutoFishConfig.Language.TRADITIONAL_CHINESE, Key.HIGH_VALUE_RANGED_ATTACK)
+                        .equals("高價值遠距攻擊"), "ranged attack Chinese label");
         for (AutoFishConfig.Language uiLanguage : AutoFishConfig.Language.values()) {
             check(SettingsTranslations.text(uiLanguage, Key.LANGUAGE_ENGLISH).equals("English"),
                     "English language option has a fixed self-name");

@@ -11,6 +11,7 @@ public final class AutoFishSelfTest {
         AutoFishStateSelfTest.run();
         InputLockSelfTest.run();
         HighValueTargetPolicySelfTest.run();
+        HighValueAbilitySelfTest.run();
         SettingsUiSelfTest.run();
         BackgroundRunState.setActive(false);
         if (BackgroundRunState.isActive()) {
